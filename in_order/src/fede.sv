@@ -10,8 +10,6 @@ module fede (
     output [31:0] pcd
 );
 
-
-
     always @(posedge clk) begin
 
         if(clr) begin 
