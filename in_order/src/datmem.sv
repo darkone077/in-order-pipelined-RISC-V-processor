@@ -1,4 +1,4 @@
-module datmem (
+module datmem #(
     parameter WORDS = 64;
 )(
 
