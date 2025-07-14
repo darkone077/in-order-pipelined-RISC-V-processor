@@ -12,7 +12,7 @@ module exme (
     output [31:0] aluRsltm,wrtDm,pc4m
 );
 
-    always_ff @( clock ) begin
+    always_ff @( clk ) begin
 
         regWrtm<=regWrte;
         memWrtm<=memWrte;
