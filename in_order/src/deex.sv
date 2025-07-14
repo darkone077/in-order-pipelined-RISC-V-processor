@@ -16,7 +16,7 @@ module deex (
     
 );
 
-    always_ff @( clock ) begin : decode_excuteReg
+    always_ff @( clk ) begin : decode_excuteReg
         if(clr) begin 
             regWrte<=1'b0;
             memWrte<=1'b0;
