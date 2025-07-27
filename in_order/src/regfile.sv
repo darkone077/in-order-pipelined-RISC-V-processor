@@ -26,8 +26,8 @@ module regfile (
     
     always_comb begin : read
 
-        rd1<=register[ad1];
-        rd2<=register[ad2];
+        rd1=register[ad1];
+        rd2=register[ad2];
         
     end
 

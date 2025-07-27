@@ -16,39 +16,41 @@ module alu #(
     input [3:0] aluctrl,
 
     output [31:0] aluout,
-    output zero
+    output zero,
+    output lstBit
 );
 
     always_comb begin : logic
         case(aluctrl)
 
             ADD:
-                aluout<=src1+src2;
+                aluout=src1+src2;
             SUB:
-                aluout<=src1+(~src2+1'b1);
+                aluout=src1+(~src2+1'b1);
             AND:
-                aluout<=src1&src2;
+                aluout=src1&src2;
             OR:
-                aluout<=src1|src2;
+                aluout=src1|src2;
             XOR:
-                aluout<=src1^src2;
+                aluout=src1^src2;
             SLL:
-                aluout<=src1<<src2[4:0];
+                aluout=src1<<src2[4:0];
             SRL:
-                aluout<=src1>>src2[4:0];
+                aluout=src1>>src2[4:0];
             SLT:
-                aluout<={31'b0,$signed(src1)<$signed(src2)};
+                aluout={31'b0,$signed(src1)<$signed(src2)};
             SRA:
-                aluout<=$signed(src1)>>src2[4:0];
+                aluout=$signed(src1)>>src2[4:0];
             SLTU:
-                aluout<={31'b0,src1<src2};
+                aluout={31'b0,src1<src2};
             default:
-                aluout<=32'b0;
+                aluout=32'b0;
             
         endcase
     end
 
     assign zero=(aluout==32'b0);
+    assign lstBit=aluout[0];
 
     
 endmodule
