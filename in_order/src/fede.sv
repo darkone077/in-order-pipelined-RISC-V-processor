@@ -1,6 +1,7 @@
 module fede (
     input clk,
     input clr,
+    input en_n,
     input [31:0] instrf,
     input [31:0] pc4f,
     input [31:0] pcf,
@@ -17,7 +18,7 @@ module fede (
             pc4d<=0;
             pcf<=0; 
         end
-        else begin
+        else if(~en_n) begin
             instrd<=instrf;
             pc4d<=pc4f;
             pcf<=pcf;
