@@ -2,10 +2,10 @@ module deex (
     input clk, clr,
     //control unit
     input regWrtd, memWrtd,jmpd,branchd,aluSrcd,
-    input [1:0] resltSrcd,immSrcd,
+    input [1:0] resltSrcd,immSrcd, ujMuxd,
     input [3:0] aluCtrld,
     output regWrte, memWrte,jmpe,branche,aluSrce,
-    output [1:0] resltSrce,immSrce,
+    output [1:0] resltSrce,immSrce, ujMuxe,
     output [3:0] aluCtrle,
 
     //datapath
@@ -34,6 +34,7 @@ module deex (
             ad1e<=5'b0;
             add2e<=5'b0;
             rde<=5'b0;
+            ujMuxe<=2'b0;
 
         end
         else begin 
@@ -53,6 +54,7 @@ module deex (
             ad1e<=ad1d;
             add2e<=ad2d;
             rde<=rdd;
+            ujMuxe<=ujMuxd;
         end
     end
     
