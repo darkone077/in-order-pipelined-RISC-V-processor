@@ -8,9 +8,9 @@ module exme (
     output [1:0] rsltSrcm,
 
     //datapath
-    input [31:0] aluRslte,wrtDe,pc4e,
+    input [31:0] aluRslte,wrtDe,pc4e, ujWrtBcke,
     input [4:0] rde,
-    output [31:0] aluRsltm,wrtDm,pc4m,
+    output [31:0] aluRsltm,wrtDm,pc4m, ujWrtBckm
     output [4:0] rdm
 );
 
@@ -23,6 +23,7 @@ module exme (
         wrtDm<=wrtDe;
         pc4m<=pc4e;
         rdm<=rde;
+        ujWrtBckm<=ujWrtBcke;
         
     end
     
