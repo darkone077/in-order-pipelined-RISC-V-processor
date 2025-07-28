@@ -1,5 +1,5 @@
 module extend (
-    input [1:0] immsrc,
+    input [2:0] immsrc,
     input [24:0] imm,
     output [31:0] immext
 );
