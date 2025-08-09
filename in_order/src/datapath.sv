@@ -1,5 +1,0 @@
-module datapath (
-    ports
-);
-    
-endmodule

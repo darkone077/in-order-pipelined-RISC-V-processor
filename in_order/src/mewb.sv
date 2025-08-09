@@ -8,10 +8,10 @@ module mewb (
     output [1:0] rsltSrcw,
 
     //datapath
-    input [31:0] readDm,pc4m, ujWrtBckm
+    input [31:0] readDm,pc4m,ujWrtBckm,aluRsltm,
     input [4:0] rdm,
-    output [31:0] readDw,pc4w, ujWrtBckw
-    output [4:0] rdw,
+    output [31:0] readDw,pc4w,ujWrtBckw,aluRsltw,
+    output [4:0] rdw
 
 );
 
@@ -23,7 +23,8 @@ module mewb (
         readDw<=readDm;
         pc4w<=pc4m;
         rdw<=rdm;
-        ujWrtBckw<=ujWrtBckm
+        ujWrtBckw<=ujWrtBckm;
+        aluRsltw<=aluRsltm;
         
     end
     

@@ -12,9 +12,9 @@ module hazardunit (
         else if((rdw==rs1e)&&(regWrtw)&&rs1e!=0) fwdAe=2'b01;
         else fwdAe=2'b00;
 
-        if((rdm==rs2e)&&(regWrtm)&&rs2e!=0) fwdAe=2'b10;
-        else if((rdw==rs2e)&&(regWrtw)&&rs2e!=0) fwdAe=2'b01;
-        else fwdAe=2'b00;
+        if((rdm==rs2e)&&(regWrtm)&&rs2e!=0) fwdBe=2'b10;
+        else if((rdw==rs2e)&&(regWrtw)&&rs2e!=0) fwdBe=2'b01;
+        else fwdBe=2'b00;
 
         lwstall=(rsltSrce==2'b01)&(rdw==rs1d)||(rdw==rs2d);
         stalld=lwstall;

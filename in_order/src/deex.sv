@@ -4,9 +4,11 @@ module deex (
     input regWrtd, memWrtd,jmpd,branchd,aluSrcd,
     input [1:0] resltSrcd,immSrcd, ujMuxd,
     input [3:0] aluCtrld,
+    input [2:0] funct3d,
     output regWrte, memWrte,jmpe,branche,aluSrce,
     output [1:0] resltSrce,immSrce, ujMuxe,
     output [3:0] aluCtrle,
+    output [2:0] funct3e
 
     //datapath
     input [31:0] rd1d,rd2d,pcd,pc4d,immextd,
@@ -35,6 +37,7 @@ module deex (
             add2e<=5'b0;
             rde<=5'b0;
             ujMuxe<=2'b0;
+            funct3e<=3'b0;
 
         end
         else begin 
@@ -55,6 +58,7 @@ module deex (
             add2e<=ad2d;
             rde<=rdd;
             ujMuxe<=ujMuxd;
+            funct3e<=funct3d;
         end
     end
     
