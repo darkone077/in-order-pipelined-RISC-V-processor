@@ -1,11 +1,13 @@
-module pc (
-    input clk,
-    input pc_src,
-    input en_n,
-    input [31:0]pc4,
-    input [31:0]pcj
+`timescale 1ns/1ps
 
-    output [31:0]pc_nxt
+module pc (
+    input logic clk,
+    input logic pc_src,
+    input logic en_n,
+    input logic [31:0]pc4,
+    input logic [31:0]pcj,
+
+    output logic [31:0]pc_nxt
 );
 
     always @(posedge clk) begin

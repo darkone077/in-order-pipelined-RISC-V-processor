@@ -1,11 +1,13 @@
+`timescale 1ns/1ps
+
 module hazardunit (
-    input[4:0] rs1d,rs2d,rs1e,rs2e,rde,rdm,rdw,
-    input [1:0] rsltSrce,
-    input pcSrce,regWrtm,regWrtw,
-    output stallf,stalld,flushd,flushe,
-    output [1:0] fwdAe,fwdBe
+    input logic[4:0] rs1d,rs2d,rs1e,rs2e,rde,rdm,rdw,
+    input logic [1:0] rsltSrce,
+    input logic pcSrce,regWrtm,regWrtw,
+    output logic stallf,stalld,flushd,flushe,
+    output logic [1:0] fwdAe,fwdBe
 );
-    reg lwstall;
+    logic lwstall;
     always_comb begin
 
         if((rdm==rs1e)&&(regWrtm)&&rs1e!=0) fwdAe=2'b10;
@@ -16,7 +18,7 @@ module hazardunit (
         else if((rdw==rs2e)&&(regWrtw)&&rs2e!=0) fwdBe=2'b01;
         else fwdBe=2'b00;
 
-        lwstall=(rsltSrce==2'b01)&(rdw==rs1d)||(rdw==rs2d);
+        lwstall=(rsltSrce==2'b01)&&((rde==rs1d)||(rde==rs2d));
         stalld=lwstall;
         stallf=lwstall;
         flushe=lwstall|pcSrce;

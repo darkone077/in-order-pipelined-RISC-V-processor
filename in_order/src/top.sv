@@ -1,6 +1,8 @@
+`timescale 1ns/1ps
+
 module top (
-    input clk,
-    input rst
+    input logic clk,
+    input logic rst
 );
 
     logic [31:0] pcf;

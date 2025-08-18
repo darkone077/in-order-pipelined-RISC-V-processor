@@ -1,11 +1,17 @@
+`timescale 1ns/1ps
+
 module instmem #(
-    parameter WORDS=64
+    parameter WORDS=256
 ) (
-    input [31:0] mem_ad,
-    output [31:0] red_dat
+    input logic [31:0] mem_ad,
+    output logic [31:0] redDat
 );
     logic [31:0] ROM [0:WORDS-1];
-    assign red_dat=ROM[mem_ad[31:2]];
+    initial begin
+        $readmemh("/home/kaush/cpu2/in_order/tb/instmem.mem",ROM);
+    end
+    /* verilator lint_off WIDTHTRUNC */
+    assign redDat=ROM[mem_ad[31:2]];
 
     
 endmodule

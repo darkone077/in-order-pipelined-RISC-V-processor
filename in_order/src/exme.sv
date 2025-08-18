@@ -1,20 +1,22 @@
+`timescale 1ns/1ps
+
 module exme (
-    input clk,
+    input logic clk,
 
     //control path
-    input regWrte, memWrte,
-    input [1:0] rsltSrce,
-    output regWrtm, memWrtm,
-    output [1:0] rsltSrcm,
+    input logic regWrte, memWrte,
+    input logic [1:0] rsltSrce,
+    output logic regWrtm, memWrtm,
+    output logic [1:0] rsltSrcm,
 
     //datapath
-    input [31:0] aluRslte,wrtDe,pc4e, ujWrtBcke,
-    input [4:0] rde,
-    output [31:0] aluRsltm,wrtDm,pc4m, ujWrtBckm
-    output [4:0] rdm
+    input logic [31:0] aluRslte,wrtDe,pc4e, ujWrtBcke,
+    input logic [4:0] rde,
+    output logic [31:0] aluRsltm,wrtDm,pc4m, ujWrtBckm,
+    output logic [4:0] rdm
 );
 
-    always_ff @( clk ) begin
+    always_ff @( posedge clk ) begin
 
         regWrtm<=regWrte;
         memWrtm<=memWrte;

@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module alu #(
     parameter ADD=4'b0000,
     parameter SUB=4'b0001,
@@ -11,16 +13,16 @@ module alu #(
     parameter SLTU=4'b1001
 
 ) (
-    input [31:0] src1,
-    input [31:0] src2,
-    input [3:0] aluctrl,
+    input logic [31:0] src1,
+    input logic [31:0] src2,
+    input logic [3:0] aluctrl,
 
-    output [31:0] aluout,
-    output zero,
-    output lstBit
+    output logic [31:0] aluout,
+    output logic zero,
+    output logic lstBit
 );
 
-    always_comb begin : logic
+    always_comb begin
         case(aluctrl)
 
             ADD:

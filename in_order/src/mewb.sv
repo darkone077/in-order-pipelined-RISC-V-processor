@@ -1,21 +1,23 @@
+`timescale 1ns/1ps
+
 module mewb (
-    input clk,
+    input logic clk,
 
     //control path
-    input regWrtm,memWrtm,
-    input [1:0] rsltSrcm,
-    output regWrtw,memWrtw,
-    output [1:0] rsltSrcw,
+    input logic regWrtm,memWrtm,
+    input logic [1:0] rsltSrcm,
+    output logic regWrtw,memWrtw,
+    output logic [1:0] rsltSrcw,
 
     //datapath
-    input [31:0] readDm,pc4m,ujWrtBckm,aluRsltm,
-    input [4:0] rdm,
-    output [31:0] readDw,pc4w,ujWrtBckw,aluRsltw,
-    output [4:0] rdw
+    input logic [31:0] readDm,pc4m,ujWrtBckm,aluRsltm,
+    input logic [4:0] rdm,
+    output logic [31:0] readDw,pc4w,ujWrtBckw,aluRsltw,
+    output logic [4:0] rdw
 
 );
 
-    always_ff @( clk ) begin : 
+    always_ff @(posedge clk ) begin
         
         regWrtw<=regWrtm;
         memWrtw<=memWrtm;

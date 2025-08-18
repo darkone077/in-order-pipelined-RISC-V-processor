@@ -1,26 +1,28 @@
+`timescale 1ns/1ps
+
 module regfile (
-    input clk,
-    input rst_n,
+    input logic clk,
+    input logic rst_n,
 
-    input [4:0] ad1,
-    input [4:0] ad2,
+    input logic [4:0] ad1,
+    input logic [4:0] ad2,
 
-    input [4:0] ad3,
-    input [31:0] wd3,
-    input we3,
+    input logic [4:0] ad3,
+    input logic [31:0] wd3,
+    input logic we3,
 
-    output [31:0] rd1,
-    output [31:0] rd2
+    output logic [31:0] rd1,
+    output logic [31:0] rd2
 );
 
-    reg [31:0] register [0:31];
+    logic [31:0] register [0:31];
     
-    always @(negedge clk) begin
+    always_ff @(negedge clk) begin
         if(~rst_n) begin 
             for(int i=0;i<32;i=i+1) register[i]<=32'b0;
 
         end
-        else if(we3&&ad3) register[ad3]<=we3;
+        else if(we3&&(ad3>0)) register[ad3]<=wd3;
         
     end
     

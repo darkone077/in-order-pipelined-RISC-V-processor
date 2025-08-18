@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module ctrl#(
     parameter iLoadType=7'b0000011,
     parameter iALUType=7'b0010011,
@@ -9,13 +11,13 @@ module ctrl#(
     parameter uTypeLUI=7'b0110111,
     parameter uTypeAUIPC=7'b0010111
 ) (
-    input [6:0] op,
-    input [2:0] funct3,
-    input  funct7b5,
-    output regwrt,memwrt,jmp,brnch,aluSrc,
-    output [1:0] rsltSrc,ujMux,
-    output [2:0] immSrc,
-    output [3:0] aluCtrl
+    input logic [6:0] op,
+    input logic [2:0] funct3,
+    input logic  funct7b5,
+    output logic regWrt,memWrt,jmp,brnch,aluSrc,
+    output logic [1:0] rsltSrc,ujMux,
+    output logic [2:0] immSrc,
+    output logic [3:0] aluCtrl
 );
 
 
@@ -24,24 +26,26 @@ module ctrl#(
         case(op)
 
             iLoadType:begin
-                regwrt=1'b1;
-                memwrt=1'b0;
+                regWrt=1'b1;
+                memWrt=1'b0;
                 immSrc=3'b000;
                 jmp=1'b0;
                 brnch=1'b0;
                 aluSrc=1'b1;
                 rsltSrc=2'b01;
                 aluCtrl=4'b0000;
+                ujMux=2'bxx;
             end
 
             iALUType:begin
-                regwrt=1'b1;
-                memwrt=1'b0;
+                regWrt=1'b1;
+                memWrt=1'b0;
                 immSrc=3'b000;
                 jmp=1'b0;
                 brnch=1'b0;
                 aluSrc=1'b1;
                 rsltSrc=2'b00;
+                ujMux=2'bxx;
                 case(funct3)
                     3'b000:
                         aluCtrl=4'b0000;
@@ -65,13 +69,14 @@ module ctrl#(
             end
 
             rType:begin
-                regwrt=1'b1;
-                memwrt=1'b0;
+                regWrt=1'b1;
+                memWrt=1'b0;
                 immSrc=3'bxxx;
                 jmp=1'b0;
                 brnch=1'b0;
                 aluSrc=1'b0;
                 rsltSrc=2'b00;
+                ujMux=2'bxx;
                 case(funct3)
                     3'b000:
                         if(~funct7b5) aluCtrl=4'b0000;
@@ -96,39 +101,43 @@ module ctrl#(
             end
 
             sType:begin 
-                regwrt=1'b0;
-                memwrt=1'b1;
+                regWrt=1'b0;
+                memWrt=1'b1;
                 immSrc=3'b001;
                 jmp=1'b0;
                 brnch=1'b0;
                 aluSrc=1'b1;
                 rsltSrc=2'bxx;
                 aluCtrl=4'b0000;
+                ujMux=2'bxx;
             end
 
             bType:begin 
 
-                regwrt=1'b0;
-                memwrt=1'b0;
+                regWrt=1'b0;
+                memWrt=1'b0;
                 immSrc=3'b010;
                 jmp=1'b0;
                 brnch=1'b1;
                 aluSrc=1'b0;
                 rsltSrc=2'bxx;
+                ujMux=2'bxx;
                 case(funct3) 
-                    000,001:
+                    3'b000,3'b001:
                         aluCtrl=4'b0001;
-                    100,101:
+                    3'b100,3'b101:
                         aluCtrl=4'b0111;
-                    110,111:
+                    3'b110,3'b111:
                         aluCtrl=4'b1001;
+                    default:
+                        aluCtrl=4'bxxxx;
                                   
                 endcase
             end
 
             uTypeLUI,uTypeAUIPC:begin 
-                regwrt=1'b1;
-                memwrt=1'b0;
+                regWrt=1'b1;
+                memWrt=1'b0;
                 immSrc=3'b100;
                 jmp=1'b0;
                 brnch=1'b0;
@@ -139,10 +148,11 @@ module ctrl#(
                 else ujMux=2'b01;
                 
             end
+
             jType,jTypeJALR:begin
 
-                regwrt=1'b1;
-                memwrt=1'b0;
+                regWrt=1'b1;
+                memWrt=1'b0;
                 if(op==jType) begin 
                     immSrc=3'b011;
                     ujMux=2'b01;
@@ -157,8 +167,19 @@ module ctrl#(
                 rsltSrc=2'b10;
                 aluCtrl=4'bxxxx;
                 
-             end
+            end
 
+            default:begin
+                regWrt=1'bx;
+                memWrt=1'bx;
+                immSrc=3'bxxx;
+                jmp=1'bx;
+                brnch=1'bx;
+                aluSrc=1'bx;
+                rsltSrc=2'bxx;
+                aluCtrl=4'bxxxx;
+                ujMux=2'bxx;  
+            end  
 
 
         endcase

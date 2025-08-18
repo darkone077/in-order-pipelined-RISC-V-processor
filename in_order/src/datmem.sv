@@ -1,48 +1,41 @@
-module datmem #(
-    parameter WORDS = 64;
-)(
+`timescale 1ns/1ps
 
+module datmem #(
+    parameter WORDS = 256
+)(
     input logic clk,
     input logic [31:0] mem_ad,
-    input logic [31:0] writ_dat,
-    output logic [31:0] red_dat,
+    input logic [31:0] wrtDat,
+    output logic [31:0] redDat,
 
-    input logic mem_wrt,
+    input logic memWrt,
     input logic rst 
 );
 
-    reg [31:0] mem [0:WORDS-1];
+    logic [31:0] mem [0:WORDS-1];
     int i;
 
-    always @(posedge clk) begin
+    always_ff @(posedge clk) begin
         if(rst) begin
             for(i=0;i<WORDS;i=i+1) begin 
                 mem[i]<=32'b0;
-                red_dat<=32'bx;
+                redDat<=32'bx;
 
             end
-
         end
 
         else begin 
-            if(mem_wrt) begin
-                mem[mem_ad[31:2]]<=writ_dat;
-                red_dat<=32'bx;
+            if(memWrt) begin
+                /* verilator lint_off WIDTHTRUNC */
+                mem[mem_ad[31:2]]<=wrtDat;
+                redDat<=32'bx;
             end
             else begin
-                red_dat<=mem[mem_ad[31:2]];
-
+                /* verilator lint_off WIDTHTRUNC */
+                redDat<=mem[mem_ad[31:2]];
 
              end
-
-
-
-        end
-
-        
+        end       
     end
-
-
-    
     
 endmodule
