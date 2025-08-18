@@ -1,4 +1,16 @@
 `timescale 1ns/1ps
+`include "/home/kaush/cpu2/in_order/src/alu.sv"
+`include "/home/kaush/cpu2/in_order/src/ctrl.sv"
+`include "/home/kaush/cpu2/in_order/src/datmem.sv"
+`include "/home/kaush/cpu2/in_order/src/deex.sv"
+`include "/home/kaush/cpu2/in_order/src/extend.sv"
+`include "/home/kaush/cpu2/in_order/src/fede.sv"
+`include "/home/kaush/cpu2/in_order/src/hazardunit.sv"
+`include "/home/kaush/cpu2/in_order/src/instmem.sv"
+`include "/home/kaush/cpu2/in_order/src/mewb.sv"
+`include "/home/kaush/cpu2/in_order/src/pc.sv"
+`include "/home/kaush/cpu2/in_order/src/regfile.sv"
+`include "/home/kaush/cpu2/in_order/src/exme.sv"
 
 module top (
     input logic clk,
@@ -15,13 +27,13 @@ module top (
     logic pc_src;
     
     
-    assign pc4d=pc+4;
+    assign pc4f=pcf+4;
     pc PC(clk,pc_src,stallf,pc4f,pcj,pcf);
     instmem IM(pcf,instf);
     fede FD(clk,flushd,stalld,instf,pc4f,pcf,instd,pc4d,pcd);
 
     logic [6:0] op;
-    logic [2:0] funct3,funct3e;
+    logic [2:0] funct3,funct3e,funct3d;
     logic funct7b5;
     assign op=instd[6:0];
     assign funct3=instd[14:12];
@@ -43,12 +55,14 @@ module top (
     assign rdd=instd[11:7];
     logic [4:0] ad1e,ad2e,rde;
     logic [31:0] rd1d,rd2d;
-    logic [31:0] rd1e,rd2e;
+    logic [31:0] rd1e,rd2e,pce;
+    logic [31:0] pc4e;
     logic [31:0] rsltw;
 
-    regfile RF(clk,1'b1,ad1d,ad2d,rdw,rsltw,regwrtw,rd1d,rd2d);
+    regfile RF(clk,1'b1,ad1d,ad2d,rdw,rsltw,regWrtw,rd1d,rd2d);
 
     logic [24:0] imm;
+    assign imm=instd[31:7];
     logic [31:0] immextd,immexte;
 
     extend EXTEND(immSrcd,imm,immextd);
@@ -58,31 +72,40 @@ module top (
     logic [31:0] srcAe,srcBe,wrtDe;
     logic [1:0] fwdAe,fwdBe;
 
-    case(fwdAe)
-        2'b00:
-            assign srcAe=rd1e;
-        2'b01:
-            assign srcAe=rsltw;
-        2'b10:
-            assign srcAe=aluRsltm;
-    endcase
+    always_comb begin
+        case(fwdAe)
+            2'b00:
+                srcAe=rd1e;
+            2'b01:
+                srcAe=rsltw;
+            2'b10:
+                srcAe=aluRsltm;
+            default:
+                srcAe=32'bx;
+        endcase
+    end
 
-    case(fwdBe)
-        2'b00:
-            assign wrtDe=rd2e;
-        2'b01:
-            assign wrtDe=rsltw;
-        2'b10:
-            assign wrtDe=aluRsltm;
-    endcase
+    always_comb begin
+        case(fwdBe)
+            2'b00:
+                wrtDe=rd2e;
+            2'b01:
+                wrtDe=rsltw;
+            2'b10:
+                wrtDe=aluRsltm;
+            default:
+                wrtDe=32'bx;
+        endcase
+    end
 
-    case(aluSrce)
-        1'b0:
-            assign srcBe=wrtDe;
-        1'b1:
-            assign srcBe=immexte;
-
-    endcase
+    always_comb begin
+        case(aluSrce)
+            1'b0:
+                srcBe=wrtDe;
+            1'b1:
+                srcBe=immexte;
+        endcase
+    end
 
     logic [31:0] ujWrtBcke,aluRslte;
     logic zeroe,lstBite;
@@ -91,17 +114,21 @@ module top (
 
     alu ALU(srcAe,srcBe,aluCtrle,aluRslte,zeroe,lstBite);
 
-    case(ujMuxe)
-        2'b00:
-            assign ujWrtBcke=immexte;
-        2'b01:
-            assign ujWrtBcke=immexte+pce;
-        2'b10:
-            assign ujWrtBcke=immexte+rd1e;
-    endcase
+    always_comb begin
+        case(ujMuxe)
+            2'b00:
+                ujWrtBcke=immexte;
+            2'b01:
+                ujWrtBcke=immexte+pce;
+            2'b10:
+                ujWrtBcke=immexte+rd1e;
+            default:
+                ujWrtBcke=32'bxx;
+        endcase
+    end
 
     logic regWrtm,memWrtm;
-    logic [1:0], rsltSrcm;
+    logic [1:0] rsltSrcm;
     logic [31:0] wrtDm,pc4m;
     logic [4:0] rdm;
 
@@ -118,37 +145,44 @@ module top (
 
     mewb MW(clk,regWrtm,memWrtm,rsltSrcm,regWrtw,memWrtw,rsltSrcw,readDm,pc4m,ujWrtBckm,aluRsltm,rdm,readDw,pc4w,ujWrtBckw,aluRsltw,rdw);
 
-    case(rsltSrcw)
-        2'b00:
-            assign rsltw=aluRsltw;
-        2'b01:
-            assign rsltw=readDw;
-        2'b10:
-            assign rsltw=pc4w;
-        2'b11:
-            assign rsltw=ujWrtBckw;
-    endcase
+    always_comb begin
+        case(rsltSrcw)
+            2'b00:
+                rsltw=aluRsltw;
+            2'b01:
+                rsltw=readDw;
+            2'b10:
+                rsltw=pc4w;
+            2'b11:
+                rsltw=ujWrtBckw;
+        endcase
+    end
 
-    logic stallf,stalld,flushd,flushe;
+    logic stallf=1;
+    logic stalld,flushd,flushe;
 
-    hazardunit HAZARD(ad1d,ad2d,ad1e,ad2e,rde,rdm,rdw,rsltSrce,pcSrce,regWrtm,regWrtw,stallf,stalld,flushd,flushe);
+    hazardunit HAZARD(ad1d,ad2d,ad1e,ad2e,rde,rdm,rdw,rsltSrce,pc_src,regWrtm,regWrtw,stallf,stalld,flushd,flushe,fwdAe,fwdBe);
 
     logic bt;
-
-    case(funct3e)
-        3'b000:
-            bt=brnche&zeroe;
-        3'b001:
-            bt=brnche&~zeroe;
-        3'b100:
-            bt=brnche&lstBite;
-        3'b101:
-            bt=brnche&~lstBite;
-        3'b110:
-            bt=brnche&lstBite;
-        3'b111:
-            bt=brnche&~lstBite;
-    endcase
+    
+    always_comb begin
+        case(funct3e)
+            3'b000:
+                bt=brnche&zeroe;
+            3'b001:
+                bt=brnche&~zeroe;
+            3'b100:
+                bt=brnche&lstBite;
+            3'b101:
+                bt=brnche&~lstBite;
+            3'b110:
+                bt=brnche&lstBite;
+            3'b111:
+                bt=brnche&~lstBite;
+            default:
+                bt=1'bx;
+        endcase
+    end
 
     assign pc_src=jmpe|bt;
     

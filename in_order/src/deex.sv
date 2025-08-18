@@ -4,11 +4,15 @@ module deex (
     input logic clk, clr,
     //control unit
     input logic regWrtd, memWrtd,jmpd,branchd,aluSrcd,
-    input logic [1:0] resltSrcd,immSrcd, ujMuxd,
+    input logic [1:0] resltSrcd,
+    input logic [2:0] immSrcd, 
+    input logic [1:0] ujMuxd,
     input logic [3:0] aluCtrld,
     input logic [2:0] funct3d,
     output logic regWrte, memWrte,jmpe,branche,aluSrce,
-    output logic [1:0] resltSrce,immSrce, ujMuxe,
+    output logic [1:0] resltSrce,
+    output logic [2:0] immSrce, 
+    output logic [1:0] ujMuxe,
     output logic [3:0] aluCtrle,
     output logic [2:0] funct3e,
 
@@ -28,7 +32,7 @@ module deex (
             branche<=1'b0;
             aluSrce<=1'b0;
             resltSrce<=2'b0;
-            immSrce<=2'b0;
+            immSrce<=3'b0;
             aluCtrle<=4'b0;
             rd1e<=32'b0;
             rd2e<=32'b0;
