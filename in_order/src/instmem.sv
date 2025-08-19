@@ -8,7 +8,7 @@ module instmem #(
 );
     logic [31:0] ROM [0:WORDS-1];
     initial begin
-        $readmemh("/home/kaush/cpu2/in_order/tb/instmem.mem",ROM);
+        $readmemh("../instmem.mem",ROM);
     end
     /* verilator lint_off WIDTHTRUNC */
     assign redDat=ROM[mem_ad[31:2]];

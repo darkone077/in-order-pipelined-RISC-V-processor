@@ -1,16 +1,16 @@
 `timescale 1ns/1ps
-`include "/home/kaush/cpu2/in_order/src/alu.sv"
-`include "/home/kaush/cpu2/in_order/src/ctrl.sv"
-`include "/home/kaush/cpu2/in_order/src/datmem.sv"
-`include "/home/kaush/cpu2/in_order/src/deex.sv"
-`include "/home/kaush/cpu2/in_order/src/extend.sv"
-`include "/home/kaush/cpu2/in_order/src/fede.sv"
-`include "/home/kaush/cpu2/in_order/src/hazardunit.sv"
-`include "/home/kaush/cpu2/in_order/src/instmem.sv"
-`include "/home/kaush/cpu2/in_order/src/mewb.sv"
-`include "/home/kaush/cpu2/in_order/src/pc.sv"
-`include "/home/kaush/cpu2/in_order/src/regfile.sv"
-`include "/home/kaush/cpu2/in_order/src/exme.sv"
+`include "../../src/alu.sv"
+`include "../../src/ctrl.sv"
+`include "../../src/datmem.sv"
+`include "../../src/deex.sv"
+`include "../../src/extend.sv"
+`include "../../src/fede.sv"
+`include "../../src/hazardunit.sv"
+`include "../../src/instmem.sv"
+`include "../../src/mewb.sv"
+`include "../../src/pc.sv"
+`include "../../src/regfile.sv"
+`include "../../src/exme.sv"
 
 module top (
     input logic clk,
