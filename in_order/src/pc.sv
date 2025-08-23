@@ -10,11 +10,21 @@ module pc (
     output logic [31:0]pc_nxt
 );
 
+    logic [31:0] pc;
+
+    always_comb begin
+        case(pc_src)
+            1'b0:
+                pc=pc4;
+            1'b1:
+                pc=pcj;
+        endcase
+    end
+
     always @(posedge clk) begin
 
         if(~en_n) begin
-            if(pc_src) pc_nxt<=pcj;
-            else pc_nxt<=pc4;
+            pc_nxt<=pc;
         end
         
     end

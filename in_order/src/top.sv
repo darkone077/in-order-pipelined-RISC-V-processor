@@ -26,7 +26,7 @@ module top (
     logic [31:0] instd;
     logic pc_src;
     
-    
+    assign pcj=ujWrtBcke;
     assign pc4f=pcf+4;
     pc PC(clk,pc_src,stallf,pc4f,pcj,pcf);
     instmem IM(pcf,instf);
@@ -80,8 +80,8 @@ module top (
                 srcAe=rsltw;
             2'b10:
                 srcAe=aluRsltm;
-            default:
-                srcAe=32'bx;
+            2'b11:
+                srcAe=ujWrtBckm;
         endcase
     end
 
@@ -158,10 +158,10 @@ module top (
         endcase
     end
 
-    logic stallf=1;
+    logic stallf;
     logic stalld,flushd,flushe;
 
-    hazardunit HAZARD(ad1d,ad2d,ad1e,ad2e,rde,rdm,rdw,rsltSrce,pc_src,regWrtm,regWrtw,stallf,stalld,flushd,flushe,fwdAe,fwdBe);
+    hazardunit HAZARD(ad1d,ad2d,ad1e,ad2e,rde,rdm,rdw,rsltSrce,rsltSrcm,pc_src,regWrtm,regWrtw,stallf,stalld,flushd,flushe,fwdAe,fwdBe);
 
     logic bt;
     

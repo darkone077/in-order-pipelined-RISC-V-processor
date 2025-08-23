@@ -19,7 +19,6 @@ module datmem #(
         if(rst) begin
             for(i=0;i<WORDS;i=i+1) begin 
                 mem[i]<=32'b0;
-                redDat<=32'bx;
 
             end
         end
@@ -28,14 +27,12 @@ module datmem #(
             if(memWrt) begin
                 /* verilator lint_off WIDTHTRUNC */
                 mem[mem_ad[31:2]]<=wrtDat;
-                redDat<=32'bx;
             end
-            else begin
-                /* verilator lint_off WIDTHTRUNC */
-                redDat<=mem[mem_ad[31:2]];
-
-             end
         end       
+    end
+
+    always_comb begin
+        redDat=mem[mem_ad[31:2]];
     end
     
 endmodule

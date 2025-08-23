@@ -121,7 +121,7 @@ module ctrl#(
                 brnch=1'b1;
                 aluSrc=1'b0;
                 rsltSrc=2'bxx;
-                ujMux=2'bxx;
+                ujMux=2'b01;
                 case(funct3) 
                     3'b000,3'b001:
                         aluCtrl=4'b0001;
