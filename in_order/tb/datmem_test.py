@@ -36,13 +36,13 @@ async def test(dut):
         await RisingEdge(dut.clk)
         
     dut.memWrt.value=0
-    eval=val[WORDS-1]
+    eval=val[0]
     await RisingEdge(dut.clk)
-    for i in range(WORDS):
+    for i in range(WORDS-1):
         dut.mem_ad.value=i<<2
         await RisingEdge(dut.clk)
         
         assert int(dut.redDat.value)==eval,f'error in {i} iter'
-        eval=val[i]
+        eval=val[i+1]
         
     reset(dut)
