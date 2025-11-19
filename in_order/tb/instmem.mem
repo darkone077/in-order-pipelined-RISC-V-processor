@@ -1,3 +1,15 @@
-deadbead
-badecade
-dadedade
+00510093 //addi x1,x2,5
+00508113 //addi x2,x1,5
+001101b3 //add x3, x2, x1
+0020a3a3 //sw x2, 7(x1)
+0070a483 //lw x9, 7(x1)
+0024f513 //andi x10,x9,2
+00516513 //ori x10,x2,5
+008005ef //jal x11, 8
+00006237 //lui x4, 6
+03f26293 //ori x5, x4, 63
+022106e7 //jalr x13, 34(x2)
+00004317 //auipc x6,4
+0020c633 //xor x12,x1,x2
+fe730ce3 //beq x6,x7,-8
+001117b3 //sll x15,x2,x1

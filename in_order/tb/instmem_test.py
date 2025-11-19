@@ -1,9 +1,10 @@
 import cocotb
 from cocotb.triggers import Timer
+import os
 
 @cocotb.test()
 async def test(dut):
-    f=open('/home/kaush/cpu2/in_order/tb/instmem.mem','r')
+    f=open((os.path.abspath("../instmemtest.mem")),'r')#change instmem to instmemtest in instmem.sv module
     val=['']*3
     for i in range(3):
         val[i]=f.readline()
@@ -12,6 +13,6 @@ async def test(dut):
     for i in range(3):
         dut.mem_ad.value=i<<2
         await Timer(1,'ns')
-        assert int(dut.redDat.value)==int(val[i],base=16)
+        assert int(dut.redDat.value)==int(val[i],base=16),f"failed in {i} iter"
         
         
