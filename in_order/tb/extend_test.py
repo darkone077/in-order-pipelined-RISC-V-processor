@@ -1,6 +1,5 @@
 import cocotb
 from cocotb.triggers import Timer
-from cocotb.clock import Clock
 from random import randint
 from numpy import binary_repr
 

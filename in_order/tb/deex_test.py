@@ -1,6 +1,6 @@
 from random import randint
 import cocotb
-from cocotb.triggers import RisingEdge,Timer
+from cocotb.triggers import RisingEdge
 from cocotb.clock import Clock
 from copy import deepcopy
 
@@ -11,13 +11,12 @@ async def test(dut):
     
     
     await RisingEdge(dut.clk)
-    eval=[0]*18
-    eclr=0
+    eval=[0]*19
     dut.clr.value=0
     
     
     for i in range(1000):
-        val=[randint(0,1),randint(0,1),randint(0,1),randint(0,1),randint(0,1),randint(0,3),randint(0,3),randint(0,7),randint(0,4294967295),randint(0,4294967295),randint(0,4294967295),randint(0,4294967295),randint(0,4294967295),randint(0,31),randint(0,31),randint(0,31),randint(0,3),randint(0,7)]
+        val=[randint(0,1),randint(0,1),randint(0,1),randint(0,1),randint(0,1),randint(0,3),randint(0,3),randint(0,15),randint(0,4294967295),randint(0,4294967295),randint(0,4294967295),randint(0,4294967295),randint(0,4294967295),randint(0,31),randint(0,31),randint(0,31),randint(0,3),randint(0,7),randint(0,1)]
     
         dut.regWrtd.value=val[0]
         dut.memWrtd.value=val[1]
@@ -37,6 +36,7 @@ async def test(dut):
         dut.rdd.value=val[15]
         dut.ujMuxd.value=val[16]
         dut.funct3d.value=val[17]
+        dut.readd.value=val[18]
         
         await RisingEdge(dut.clk)
         
@@ -58,5 +58,6 @@ async def test(dut):
         assert dut.rde.value==eval[15],f'error in {i} iter'
         assert dut.ujMuxe.value==eval[16],f'error in {i} iter'
         assert dut.funct3e.value==eval[17],f'error in {i} iter'
+        assert dut.reade.value==eval[18],f'error in {i} iter'
         eval=deepcopy(val)
         

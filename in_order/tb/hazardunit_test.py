@@ -1,7 +1,6 @@
 from random import randint
 import cocotb
 from cocotb.triggers import Timer
-from numpy import binary_repr
 
 @cocotb.test()
 async def test(dut):

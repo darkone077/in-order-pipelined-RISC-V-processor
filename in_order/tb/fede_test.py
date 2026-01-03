@@ -9,8 +9,6 @@ async def test(dut):
     clock=Clock(dut.clk, 10, 'ns')
     cocotb.start_soon(clock.start(start_high=False))
     eval=[0]*3
-    eclr=0
-    een_n=0
     await RisingEdge(dut.clk)
     
     for i in range(10000):

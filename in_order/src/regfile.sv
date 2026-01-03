@@ -15,21 +15,21 @@ module regfile (
     output logic [31:0] rd2
 );
 
-    logic [31:0] register [0:31];
+    logic [31:0] registers [0:31] /*verilator public*/;
     
     always_ff @(negedge clk) begin
         if(~rst_n) begin 
-            for(int i=0;i<32;i=i+1) register[i]<=32'b0;
+            for(int i=0;i<32;i=i+1) registers[i]<=32'b0;
 
         end
-        else if(we3&&(ad3>0)) register[ad3]<=wd3;
+        else if(we3&&(ad3>0)) registers[ad3]<=wd3;
         
     end
     
     always_comb begin : read
 
-        rd1=register[ad1];
-        rd2=register[ad2];
+        rd1=registers[ad1];
+        rd2=registers[ad2];
         
     end
 

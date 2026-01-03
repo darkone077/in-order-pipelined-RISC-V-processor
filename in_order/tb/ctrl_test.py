@@ -1,7 +1,6 @@
 import cocotb
 from random import randint
 from cocotb.triggers import Timer
-from numpy import binary_repr
 
 @cocotb.test()
 async def test(dut):
@@ -37,7 +36,7 @@ async def test(dut):
         funct_7b5=randint(0,1)
         dut.op.value=opc
         dut.funct3.value=funct_3
-        dut.funct7b5.value=funct_7b5
+        dut.funct7.value=funct_7b5<<5
         await Timer(1,'ns')
         
         reg_wrt=0b1
@@ -48,21 +47,21 @@ async def test(dut):
         alu_src=0b1
         rslt_src=0b00
         match funct_3:
-            case 0:
+            case 0b000: #addi
                 alu_ctrl=0b0000
-            case 1:
+            case 0b001: #slli
                 alu_ctrl=0b0101
-            case 2:
+            case 0b010: #slti
                 alu_ctrl=0b0111
-            case 3:
+            case 0b011: #sltiu
                 alu_ctrl=0b1001
-            case 4:
+            case 0b100: #xori
                 alu_ctrl=0b0100
-            case 5:
+            case 0b101: #srai and srli
                 alu_ctrl=0b1000 if funct_7b5 else 0b0110
-            case 6:
+            case 0b110: #ori
                 alu_ctrl=0b0011
-            case 7:
+            case 0b111: #andi
                 alu_ctrl=0b0010
         
         Timer(1,'ns')
@@ -80,9 +79,10 @@ async def test(dut):
     for i in range(1000):
         funct_3=randint(0,7)
         funct_7b5=randint(0,1)
+        funct_7b0=1 if funct_7b5==0 else 0
         dut.op.value=opc
         dut.funct3.value=funct_3
-        dut.funct7b5.value=funct_7b5
+        dut.funct7.value=funct_7b5<<5|funct_7b0
         await Timer(1,'ns')
         
         reg_wrt=0b1
@@ -92,21 +92,21 @@ async def test(dut):
         alu_src=0b0
         rslt_src=0b00
         match funct_3:
-            case 0:
-                alu_ctrl=0b0001 if funct_7b5 else 0b0000
-            case 1:
-                alu_ctrl=0b0101
-            case 2:
-                alu_ctrl=0b0111
-            case 3:
-                alu_ctrl=0b1001
-            case 4:
+            case 0b000: #mul, add, sub
+                alu_ctrl=0b01010 if funct_7b0 else 0b0001 if funct_7b5 else 0b0000
+            case 0b001: #mulh, sll
+                alu_ctrl=0b01011 if funct_7b0 else 0b0101
+            case 0b010: #mulhsu, slt
+                alu_ctrl=0b01101 if funct_7b0 else 0b0111
+            case 0b011: #mulu, sltu
+                alu_ctrl=0b01100 if funct_7b0 else 0b1001
+            case 0b100: #xor
                 alu_ctrl=0b0100
-            case 5:
+            case 0b101: #sra, srl
                 alu_ctrl=0b1000 if funct_7b5 else 0b0110
-            case 6:
+            case 0b110: #or
                 alu_ctrl=0b0011
-            case 7:
+            case 0b111: #and
                 alu_ctrl=0b0010
         
         Timer(1,'ns')
@@ -155,13 +155,13 @@ async def test(dut):
         branch=0b1
         alu_src=0b0
         match funct_3:
-            case 0|1:
+            case 0b00|0b01: #beq, bne
                 alu_ctrl=0b0001
-            case 4|5:
+            case 0b100|0b101: #blt,bge
                 alu_ctrl=0b0111
-            case 6|7:
+            case 0b110|0b111: #bltu,bgeu
                 alu_ctrl=0b1001
-            case 2|3:
+            case 0b010|0b011:
                 pass
         Timer(1,'ns')
         assert dut.regWrt.value==reg_wrt
@@ -170,7 +170,7 @@ async def test(dut):
         assert dut.jmp.value==jump
         assert dut.brnch.value==branch
         assert dut.aluSrc.value==alu_src
-        if(not(funct_3==2 or funct_3==3)):
+        if(not(funct_3==0b10 or funct_3==0b011)):
             assert dut.aluCtrl.value==alu_ctrl,f'error in {i} iter with funct3={funct_3}'
             
     #jtypejalr

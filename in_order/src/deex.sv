@@ -3,17 +3,17 @@
 module deex (
     input logic clk, clr,
     //control unit
-    input logic regWrtd, memWrtd,jmpd,branchd,aluSrcd,
+    input logic regWrtd, memWrtd,jmpd,branchd,aluSrcd,readd,
     input logic [1:0] resltSrcd,
     input logic [2:0] immSrcd, 
     input logic [1:0] ujMuxd,
-    input logic [3:0] aluCtrld,
+    input logic [4:0] aluCtrld,
     input logic [2:0] funct3d,
-    output logic regWrte, memWrte,jmpe,branche,aluSrce,
+    output logic regWrte, memWrte,jmpe,branche,aluSrce,reade,
     output logic [1:0] resltSrce,
     output logic [2:0] immSrce, 
     output logic [1:0] ujMuxe,
-    output logic [3:0] aluCtrle,
+    output logic [4:0] aluCtrle,
     output logic [2:0] funct3e,
 
     //datapath
@@ -24,7 +24,7 @@ module deex (
     
 );
 
-    always_ff@( posedge clk ) begin
+    always_ff@(posedge clk) begin
         if(clr) begin 
             regWrte<=1'b0;
             memWrte<=1'b0;
@@ -33,7 +33,7 @@ module deex (
             aluSrce<=1'b0;
             resltSrce<=2'b0;
             immSrce<=3'b0;
-            aluCtrle<=4'b0;
+            aluCtrle<=5'b0;
             rd1e<=32'b0;
             rd2e<=32'b0;
             pce<=32'b0;
@@ -44,6 +44,7 @@ module deex (
             rde<=5'b0;
             ujMuxe<=2'b0;
             funct3e<=3'b0;
+            reade<=1'b0;
 
         end
         else begin 
@@ -65,6 +66,7 @@ module deex (
             rde<=rdd;
             ujMuxe<=ujMuxd;
             funct3e<=funct3d;
+            reade<=readd;
         end
     end
     

@@ -4,7 +4,7 @@ import os
 
 @cocotb.test()
 async def test(dut):
-    f=open((os.path.abspath("../instmemtest.mem")),'r')#change instmem to instmemtest in instmem.sv module
+    f=open((os.path.abspath("../tb/instmemtest.mem")),'r')#change instmem to instmemtest in instmem.sv module
     val=['']*3
     for i in range(3):
         val[i]=f.readline()

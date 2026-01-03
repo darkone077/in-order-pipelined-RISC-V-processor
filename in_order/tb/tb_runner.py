@@ -5,13 +5,14 @@ import os
 def tb_runner(mod):
     sim=os.getenv("SIM","verilator")
     path=Path(__file__).resolve().parent.parent
-    srcs=[path/f'src/{mod}.sv']
+    srcs=[path/f"src/{mod}.sv"]
     runner=get_runner(sim)
     runner.build(hdl_toplevel=f"{mod}",sources=srcs)
     
-    runner.test(hdl_toplevel=f'{mod}',test_module=f'{mod}_test')
+    runner.test(hdl_toplevel=f"{mod}",test_module=f'{mod}_test')
     
 if __name__=="__main__":
+    
     tb_runner('alu')
     tb_runner('ctrl')
     tb_runner('datmem')
@@ -23,4 +24,5 @@ if __name__=="__main__":
     tb_runner('instmem')
     tb_runner('mewb')
     tb_runner('regfile')
-    tb_runner('pc')
+    tb_runner('pc') 
+    tb_runner('datmem_axi_lite_wrapper')

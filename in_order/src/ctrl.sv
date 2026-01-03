@@ -13,11 +13,11 @@ module ctrl#(
 ) (
     input logic [6:0] op,
     input logic [2:0] funct3,
-    input logic  funct7b5,
-    output logic regWrt,memWrt,jmp,brnch,aluSrc,
+    input logic  [6:0] funct7,
+    output logic regWrt,memWrt,jmp,brnch,aluSrc,read,
     output logic [1:0] rsltSrc,ujMux,
     output logic [2:0] immSrc,
-    output logic [3:0] aluCtrl
+    output logic [4:0] aluCtrl
 );
 
 
@@ -33,8 +33,9 @@ module ctrl#(
                 brnch=1'b0;
                 aluSrc=1'b1;
                 rsltSrc=2'b01;
-                aluCtrl=4'b0000;
+                aluCtrl=5'b00000;
                 ujMux=2'bxx;
+                read=1'b1;
             end
 
             iALUType:begin
@@ -46,25 +47,26 @@ module ctrl#(
                 aluSrc=1'b1;
                 rsltSrc=2'b00;
                 ujMux=2'bxx;
+                read=1'b0;
                 case(funct3)
-                    3'b000:
-                        aluCtrl=4'b0000;
-                    3'b001:
-                        aluCtrl=4'b0101;
-                    3'b010:
-                        aluCtrl=4'b0111;
-                    3'b011:
-                        aluCtrl=4'b1001;
-                    3'b100:
-                        aluCtrl=4'b0100;
-                    3'b101:
-                        if(funct7b5) aluCtrl=4'b1000;
-                        else aluCtrl=4'b0110;
+                    3'b000: //addi
+                        aluCtrl=5'b00000;
+                    3'b001: //slli
+                        aluCtrl=5'b00101;
+                    3'b010: //slti
+                        aluCtrl=5'b00111;
+                    3'b011: //sltiu
+                        aluCtrl=5'b01001;
+                    3'b100: //xori
+                        aluCtrl=5'b00100;
+                    3'b101: //srai and srli
+                        if(funct7[5]) aluCtrl=5'b01000;
+                        else aluCtrl=5'b00110;
                         
-                    3'b110:
-                        aluCtrl=4'b0011;
-                    3'b111:
-                        aluCtrl=4'b0010;
+                    3'b110: //ori
+                        aluCtrl=5'b00011;
+                    3'b111: //andi
+                        aluCtrl=5'b00010;
                 endcase
             end
 
@@ -77,26 +79,31 @@ module ctrl#(
                 aluSrc=1'b0;
                 rsltSrc=2'b00;
                 ujMux=2'bxx;
+                read=1'b0;
                 case(funct3)
-                    3'b000:
-                        if(~funct7b5) aluCtrl=4'b0000;
-                        else aluCtrl=4'b0001;
-                    3'b001:
-                        aluCtrl=4'b0101;
-                    3'b010:
-                        aluCtrl=4'b0111;
-                    3'b011:
-                        aluCtrl=4'b1001;
-                    3'b100:
-                        aluCtrl=4'b0100;
-                    3'b101:
-                        if(funct7b5) aluCtrl=4'b1000;
-                        else aluCtrl=4'b0110;
+                    3'b000: //mul, add, sub
+                        if(funct7[0]) aluCtrl=5'b01010;
+                        else if(~funct7[5]) aluCtrl=5'b00000;
+                        else aluCtrl=5'b00001;
+                    3'b001: //mulh, sll
+                        if(funct7[0]) aluCtrl=5'b01011;
+                        else aluCtrl=5'b00101;
+                    3'b010: //mulhsu, slt
+                        if(funct7[0]) aluCtrl=5'b01101;
+                        else aluCtrl=5'b00111;
+                    3'b011: //mulu, sltu
+                        if(funct7[0]) aluCtrl=5'b01100;
+                        else aluCtrl=5'b01001;
+                    3'b100: //xor
+                        aluCtrl=5'b00100;
+                    3'b101: //sra, srl
+                        if(funct7[5]) aluCtrl=5'b01000;
+                        else aluCtrl=5'b00110;
                         
-                    3'b110:
-                        aluCtrl=4'b0011;
-                    3'b111:
-                        aluCtrl=4'b0010;
+                    3'b110: //or
+                        aluCtrl=5'b00011;
+                    3'b111: //and
+                        aluCtrl=5'b00010;
                 endcase
             end
 
@@ -108,8 +115,9 @@ module ctrl#(
                 brnch=1'b0;
                 aluSrc=1'b1;
                 rsltSrc=2'bxx;
-                aluCtrl=4'b0000;
+                aluCtrl=5'b00000;
                 ujMux=2'bxx;
+                read=1'b0;
             end
 
             bType:begin 
@@ -122,15 +130,16 @@ module ctrl#(
                 aluSrc=1'b0;
                 rsltSrc=2'bxx;
                 ujMux=2'b01;
+                read=1'b0;
                 case(funct3) 
-                    3'b000,3'b001:
-                        aluCtrl=4'b0001;
-                    3'b100,3'b101:
-                        aluCtrl=4'b0111;
-                    3'b110,3'b111:
-                        aluCtrl=4'b1001;
+                    3'b000,3'b001: //beq, bne
+                        aluCtrl=5'b00001;
+                    3'b100,3'b101: //blt,bge
+                        aluCtrl=5'b00111;
+                    3'b110,3'b111: //bltu, bgeu
+                        aluCtrl=5'b01001;
                     default:
-                        aluCtrl=4'bxxxx;
+                        aluCtrl=5'b0xxxx;
                                   
                 endcase
             end
@@ -143,7 +152,8 @@ module ctrl#(
                 brnch=1'b0;
                 aluSrc=1'bx;
                 rsltSrc=2'b11;
-                aluCtrl=4'bxxxx;
+                aluCtrl=5'b0xxxx;
+                read=1'b0;
                 if(op==uTypeLUI) ujMux=2'b00;
                 else ujMux=2'b01;
                 
@@ -153,6 +163,7 @@ module ctrl#(
 
                 regWrt=1'b1;
                 memWrt=1'b0;
+                read=1'b0;
                 if(op==jType) begin 
                     immSrc=3'b011;
                     ujMux=2'b01;
@@ -165,20 +176,21 @@ module ctrl#(
                 brnch=1'b0;
                 aluSrc=1'bx;
                 rsltSrc=2'b10;
-                aluCtrl=4'bxxxx;
+                aluCtrl=5'b0xxxx;
                 
             end
 
             default:begin
-                regWrt=1'bx;
-                memWrt=1'bx;
+                regWrt=1'b0;
+                memWrt=1'b0;
                 immSrc=3'bxxx;
-                jmp=1'bx;
-                brnch=1'bx;
+                jmp=1'b0;
+                brnch=1'b0;
                 aluSrc=1'bx;
                 rsltSrc=2'bxx;
-                aluCtrl=4'bxxxx;
-                ujMux=2'bxx;  
+                aluCtrl=5'b0xxxx;
+                ujMux=2'bxx; 
+                read=1'b0; 
             end  
 
 

@@ -1,53 +1,57 @@
 `timescale 1ns/1ps
-`include "../../src/alu.sv"
-`include "../../src/ctrl.sv"
-`include "../../src/datmem.sv"
-`include "../../src/deex.sv"
-`include "../../src/extend.sv"
-`include "../../src/fede.sv"
-`include "../../src/hazardunit.sv"
-`include "../../src/instmem.sv"
-`include "../../src/mewb.sv"
-`include "../../src/pc.sv"
-`include "../../src/regfile.sv"
-`include "../../src/exme.sv"
+`include "../src/alu.sv"
+`include "../src/ctrl.sv"
+`include "../src/datmem.sv"
+`include "../src/deex.sv"
+`include "../src/extend.sv"
+`include "../src/fede.sv"
+`include "../src/hazardunit.sv"
+`include "../src/instmem.sv"
+`include "../src/mewb.sv"
+`include "../src/pc.sv"
+`include "../src/regfile.sv"
+`include "../src/exme.sv"
+`include "../src/axi4-lite_if.sv"
+`include "../src/datmem_axi_lite.sv"
 
 module top (
     input logic clk,
-    input logic rst
+    input logic rst,
+    output logic axi_error,
+    output logic [31:0] pcf, pcj,
+    axi4_if.MASTER inf
+    
 );
-
-    logic [31:0] pcf;
+    
     logic [31:0] pcd;
     logic [31:0] pc4f;
     logic [31:0] pc4d;
-    logic [31:0] pcj;
     logic [31:0] instf;
     logic [31:0] instd;
-    logic pc_src;
+    logic pcSrc;
     
     assign pcj=ujWrtBcke;
     assign pc4f=pcf+4;
-    pc PC(clk,pc_src,stallf,pc4f,pcj,pcf);
+    pc PC(clk,pcSrc,stallf,pc4f,pcj,pcf);
     instmem IM(pcf,instf);
-    fede FD(clk,flushd,stalld,instf,pc4f,pcf,instd,pc4d,pcd);
+    fede FD(clk,flushd|rst,stalld,instf,pc4f,pcf,instd,pc4d,pcd);
 
     logic [6:0] op;
     logic [2:0] funct3,funct3e,funct3d;
-    logic funct7b5;
+    logic [6:0] funct7;
     assign op=instd[6:0];
-    assign funct3=instd[14:12];
-    assign funct7b5=instd[30];
-    logic regWrtd,memWrtd,jmpd,brnchd,aluSrcd;
+    assign funct3d=instd[14:12];
+    assign funct7=instd[31:25];
+    logic regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd;
     logic [1:0] rsltSrcd,ujMuxd;
     logic [2:0] immSrcd;
-    logic [3:0] aluCtrld;
-    logic regWrte,memWrte,jmpe,brnche,aluSrce;
+    logic [4:0] aluCtrld;
+    logic regWrte,memWrte,jmpe,brnche,aluSrce,reade;
     logic [1:0] rsltSrce,ujMuxe;
     logic [2:0] immSrce;
-    logic [3:0] aluCtrle;
+    logic [4:0] aluCtrle;
 
-    ctrl Control(op,funct3,funct7b5,regWrtd,memWrtd,jmpd,brnchd,aluSrcd,rsltSrcd,ujMuxd,immSrcd,aluCtrld);
+    ctrl Control(op,funct3d,funct7,regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd,rsltSrcd,ujMuxd,immSrcd,aluCtrld);
     
     logic [4:0] ad1d,ad2d,rdd;
     assign ad1d=instd[19:15];
@@ -59,15 +63,15 @@ module top (
     logic [31:0] pc4e;
     logic [31:0] rsltw;
 
-    regfile RF(clk,1'b1,ad1d,ad2d,rdw,rsltw,regWrtw,rd1d,rd2d);
+    regfile RF(clk,~rst,ad1d,ad2d,rdw,rsltw,regWrtw,rd1d,rd2d);
 
     logic [24:0] imm;
     assign imm=instd[31:7];
     logic [31:0] immextd,immexte;
-
+    
     extend EXTEND(immSrcd,imm,immextd);
 
-    deex DE(clk,flushe,regWrtd,memWrtd,jmpd,brnchd,aluSrcd,rsltSrcd,immSrcd,ujMuxd,aluCtrld,funct3d,regWrte,memWrte,jmpe,brnche,aluSrce,rsltSrce,immSrce,ujMuxe,aluCtrle,funct3e,rd1d,rd2d,pcd,pc4d,immextd,ad1d,ad2d,rdd,rd1e,rd2e,pce,pc4e,immexte,ad1e,ad2e,rde);
+    deex DE(clk,flushe|rst,regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd,rsltSrcd,immSrcd,ujMuxd,aluCtrld,funct3d,regWrte,memWrte,jmpe,brnche,aluSrce,reade,rsltSrce,immSrce,ujMuxe,aluCtrle,funct3e,rd1d,rd2d,pcd,pc4d,immextd,ad1d,ad2d,rdd,rd1e,rd2e,pce,pc4e,immexte,ad1e,ad2e,rde);
 
     logic [31:0] srcAe,srcBe,wrtDe;
     logic [1:0] fwdAe,fwdBe;
@@ -131,12 +135,14 @@ module top (
     logic [1:0] rsltSrcm;
     logic [31:0] wrtDm,pc4m;
     logic [4:0] rdm;
+    logic readm;
 
-    exme EM(clk,regWrte,memWrte,rsltSrce,regWrtm,memWrtm,rsltSrcm,aluRslte,wrtDe,pc4e,ujWrtBcke,rde,aluRsltm,wrtDm,pc4m,ujWrtBckm,rdm);
+    exme EM(clk,regWrte,memWrte,reade,rsltSrce,regWrtm,memWrtm,readm,rsltSrcm,aluRslte,wrtDe,pc4e,ujWrtBcke,rde,aluRsltm,wrtDm,pc4m,ujWrtBckm,rdm);
 
     logic [31:0] readDm;
     logic [31:0] readDw;
-    datmem DM(clk,aluRsltm,wrtDm,readDm,memWrtm,rst);
+    logic busy;
+    datmem_axi_lite DM(inf,memWrtm,aluRsltm,wrtDm,4'b1111,readm,readDm,axi_error,busy);
 
     logic [31:0] aluRsltw,pc4w,ujWrtBckw;
     logic [4:0] rdw;
@@ -161,7 +167,7 @@ module top (
     logic stallf;
     logic stalld,flushd,flushe;
 
-    hazardunit HAZARD(ad1d,ad2d,ad1e,ad2e,rde,rdm,rdw,rsltSrce,rsltSrcm,pc_src,regWrtm,regWrtw,stallf,stalld,flushd,flushe,fwdAe,fwdBe);
+    hazardunit HAZARD(ad1d,ad2d,ad1e,ad2e,rde,rdm,rdw,rsltSrce,rsltSrcm,pcSrc,regWrtm,regWrtw,busy,stallf,stalld,flushd,flushe,fwdAe,fwdBe);
 
     logic bt;
     
@@ -184,6 +190,6 @@ module top (
         endcase
     end
 
-    assign pc_src=jmpe|bt;
+    assign pcSrc=jmpe|bt;
     
 endmodule

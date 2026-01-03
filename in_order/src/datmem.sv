@@ -1,12 +1,13 @@
 `timescale 1ns/1ps
 
 module datmem #(
-    parameter WORDS = 256
+    parameter WORDS = 2519936
 )(
     input logic clk,
     input logic [31:0] mem_ad,
     input logic [31:0] wrtDat,
     output logic [31:0] redDat,
+    output logic [31:0] dis [0:95],
 
     input logic memWrt,
     input logic rst 
@@ -14,6 +15,9 @@ module datmem #(
 
     logic [31:0] mem [0:WORDS-1];
     int i;
+
+    initial
+        $readmemb("../tb/badapple.mem",mem);
 
     always_ff @(posedge clk) begin
         if(rst) begin
@@ -33,6 +37,7 @@ module datmem #(
 
     always_comb begin
         redDat=mem[mem_ad[31:2]];
+        dis=mem[0:95];
     end
     
 endmodule

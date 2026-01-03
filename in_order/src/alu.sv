@@ -1,21 +1,29 @@
 `timescale 1ns/1ps
 
 module alu #(
-    parameter ADD=4'b0000,
-    parameter SUB=4'b0001,
-    parameter AND=4'b0010,
-    parameter OR=4'b0011,
-    parameter XOR=4'b0100,
-    parameter SLL=4'b0101,
-    parameter SRL=4'b0110,
-    parameter SLT=4'b0111,
-    parameter SRA=4'b1000,
-    parameter SLTU=4'b1001
+    parameter ADD=5'b00000,
+    parameter SUB=5'b00001,
+    parameter AND=5'b00010,
+    parameter OR=5'b00011,
+    parameter XOR=5'b00100,
+    parameter SLL=5'b00101,
+    parameter SRL=5'b00110,
+    parameter SLT=5'b00111,
+    parameter SRA=5'b01000,
+    parameter SLTU=5'b01001,
+    parameter MUL=5'b01010,
+    parameter MULH=5'b01011,
+    parameter MULHU=5'b01100,
+    parameter MULHSU=5'b01101,
+    parameter DIV=5'b01110,
+    parameter DIVU=5'b01111,
+    parameter REM=5'b10000,
+    parameter REMU=5'b10001
 
 ) (
     input logic [31:0] src1,
     input logic [31:0] src2,
-    input logic [3:0] aluctrl,
+    input logic [4:0] aluctrl,
 
     output logic [31:0] aluout,
     output logic zero,
@@ -45,6 +53,15 @@ module alu #(
                 aluout=$signed(src1)>>src2[4:0];
             SLTU:
                 aluout={31'b0,src1<src2};
+            MUL:
+                aluout=src1*src2;
+            MULH:
+                /* verilator lint_off WIDTHTRUNC */
+                aluout=($signed({{32{src1[31]}},src1})*$signed({{32{src2[31]}},src2}))>>32;
+            MULHU:
+                aluout=($unsigned({32'b0,src1})*$unsigned({32'b0,src2}))>>32;
+            MULHSU:
+                aluout=($signed({{32{src1[31]}},src1})*$unsigned({32'b0,src2}))>>32;
             default:
                 aluout=32'b0;
             
