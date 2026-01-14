@@ -6,8 +6,10 @@ module exme (
     //control path
     input logic regWrte, memWrte,reade,
     input logic [1:0] rsltSrce,
+    input logic [2:0] funct3e,
     output logic regWrtm, memWrtm,readm,
     output logic [1:0] rsltSrcm,
+    output logic [2:0] funct3m,
 
     //datapath
     input logic [31:0] aluRslte,wrtDe,pc4e,ujWrtBcke,
@@ -27,7 +29,7 @@ module exme (
         rdm<=rde;
         ujWrtBckm<=ujWrtBcke;
         readm<=reade;
-        
+        funct3m<=funct3e;
     end
     
 endmodule

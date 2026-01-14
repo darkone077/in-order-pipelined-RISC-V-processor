@@ -26,3 +26,5 @@ if __name__=="__main__":
     tb_runner('regfile')
     tb_runner('pc') 
     tb_runner('datmem_axi_lite_wrapper')
+    tb_runner('loadstoredecoder')
+    tb_runner('loadunit')
