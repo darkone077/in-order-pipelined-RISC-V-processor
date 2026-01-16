@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 
 module deex (
-    input logic clk, clr,
+    input logic clk, clr,en_n,
     //control unit
     input logic regWrtd, memWrtd,jmpd,branchd,aluSrcd,readd,
     input logic [1:0] resltSrcd,
@@ -47,7 +47,7 @@ module deex (
             reade<=1'b0;
 
         end
-        else begin 
+        else if(~en_n) begin 
             regWrte<=regWrtd;
             memWrte<=memWrtd;
             jmpe<=jmpd;

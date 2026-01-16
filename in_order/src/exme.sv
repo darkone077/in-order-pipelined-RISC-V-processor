@@ -2,7 +2,7 @@
 
 module exme (
     input logic clk,
-
+    input logic en_n,
     //control path
     input logic regWrte, memWrte,reade,
     input logic [1:0] rsltSrce,
@@ -19,17 +19,18 @@ module exme (
 );
 
     always_ff @( posedge clk ) begin
-
-        regWrtm<=regWrte;
-        memWrtm<=memWrte;
-        rsltSrcm<=rsltSrce;
-        aluRsltm<=aluRslte;
-        wrtDm<=wrtDe;
-        pc4m<=pc4e;
-        rdm<=rde;
-        ujWrtBckm<=ujWrtBcke;
-        readm<=reade;
-        funct3m<=funct3e;
+        if(~en_n) begin
+            regWrtm<=regWrte;
+            memWrtm<=memWrte;
+            rsltSrcm<=rsltSrce;
+            aluRsltm<=aluRslte;
+            wrtDm<=wrtDe;
+            pc4m<=pc4e;
+            rdm<=rde;
+            ujWrtBckm<=ujWrtBcke;
+            readm<=reade;
+            funct3m<=funct3e;
+        end
     end
     
 endmodule

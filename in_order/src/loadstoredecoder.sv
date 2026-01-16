@@ -53,7 +53,7 @@ always_comb begin
                 outDat=inDat;
             end
             else begin
-                strobe=4'b000;
+                strobe=4'b0000;
                 outDat=32'hxxxxxxxx;
             end
         end

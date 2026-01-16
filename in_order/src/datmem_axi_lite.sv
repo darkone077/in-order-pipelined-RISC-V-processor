@@ -10,19 +10,13 @@ module datmem_axi_lite(
     output logic error,busy
 );
 
-logic [31:0] addr,wdata,rdata;
 logic aw_done,w_done;
-logic [3:0] stb;
 typedef enum logic [2:0] {IDLE,WRT_SEND,WRTRESP_RECIEVE,RADDR_SEND,RDATA_RECIEVE} type_state;
 type_state state,next_state;
 
 always_ff @(posedge aim.ACLK) begin
     if(~aim.ARSTN) begin
         state<=IDLE;
-
-        addr<=32'b0;
-        wdata<=32'b0;
-        stb<=4'b0;
         aw_done<=1'b0;
         w_done<=1'b0;
     end
@@ -30,9 +24,6 @@ always_ff @(posedge aim.ACLK) begin
     else begin
         state<=next_state;
         if (state==IDLE&&(memWrt||readEN)) begin
-            addr<={memAd[31:2],2'b00};
-            wdata<=wrtDat;
-            stb<=strobe;
             aw_done<=1'b0;
             w_done<=1'b0;
             
@@ -42,9 +33,6 @@ always_ff @(posedge aim.ACLK) begin
                 if (aim.WVALID&&aim.WREADY)  w_done<=1'b1;
         end
 
-        else if (state==RDATA_RECIEVE&&aim.RVALID) begin
-            rdata<=aim.RDATA;
-        end
         else begin
             aw_done<=1'b0;
             w_done<=1'b0;
@@ -53,11 +41,11 @@ end
 end
 
 always_comb begin
-    aim.WSTRB=stb;
-    aim.AWADDR=addr;
-    aim.WDATA=wdata;
-    aim.ARADDR=addr;
-    readDat=rdata;
+    aim.WSTRB=strobe;
+    aim.AWADDR={memAd[31:2],2'b00};
+    aim.WDATA=wrtDat;
+    aim.ARADDR={memAd[31:2],2'b00};
+    readDat=aim.RDATA;
     case (state)
 
         IDLE:begin
