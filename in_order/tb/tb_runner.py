@@ -12,7 +12,6 @@ def tb_runner(mod):
     runner.test(hdl_toplevel=f"{mod}",test_module=f'{mod}_test')
     
 if __name__=="__main__":
-    
     tb_runner('alu')
     tb_runner('ctrl')
     tb_runner('datmem')
@@ -28,3 +27,4 @@ if __name__=="__main__":
     tb_runner('datmem_axi_lite_wrapper')
     tb_runner('loadstoredecoder')
     tb_runner('loadunit')
+    tb_runner('divider')

@@ -3,18 +3,20 @@
 module deex (
     input logic clk, clr,en_n,
     //control unit
-    input logic regWrtd, memWrtd,jmpd,branchd,aluSrcd,readd,
+    input logic regWrtd,memWrtd,jmpd,branchd,aluSrcd,readd,div_end,
     input logic [1:0] resltSrcd,
     input logic [2:0] immSrcd, 
     input logic [1:0] ujMuxd,
     input logic [4:0] aluCtrld,
     input logic [2:0] funct3d,
-    output logic regWrte, memWrte,jmpe,branche,aluSrce,reade,
+    input logic [1:0] divCtrld,
+    output logic regWrte,memWrte,jmpe,branche,aluSrce,reade,div_ene,
     output logic [1:0] resltSrce,
     output logic [2:0] immSrce, 
     output logic [1:0] ujMuxe,
     output logic [4:0] aluCtrle,
     output logic [2:0] funct3e,
+    output logic [1:0] divCtrle,
 
     //datapath
     input logic [31:0] rd1d,rd2d,pcd,pc4d,immextd,
@@ -45,6 +47,8 @@ module deex (
             ujMuxe<=2'b0;
             funct3e<=3'b0;
             reade<=1'b0;
+            divCtrle<=2'b00;
+            div_ene<=1'b0;
 
         end
         else if(~en_n) begin 
@@ -67,6 +71,8 @@ module deex (
             ujMuxe<=ujMuxd;
             funct3e<=funct3d;
             reade<=readd;
+            divCtrle<=divCtrld;
+            div_ene<=div_end;
         end
     end
     

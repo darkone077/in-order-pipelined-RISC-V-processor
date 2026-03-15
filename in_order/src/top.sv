@@ -15,6 +15,7 @@
 `include "../src/datmem_axi_lite.sv"
 `include "../src/loadstoredecoder.sv"
 `include "../src/loadunit.sv"
+`include "../src/divider.sv"
 
 module top (
     input logic clk,
@@ -44,16 +45,16 @@ module top (
     assign op=instd[6:0];
     assign funct3d=instd[14:12];
     assign funct7=instd[31:25];
-    logic regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd;
-    logic [1:0] rsltSrcd,ujMuxd;
+    logic regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd,div_end;
+    logic [1:0] rsltSrcd,ujMuxd,divCtrld;
     logic [2:0] immSrcd;
     logic [4:0] aluCtrld;
-    logic regWrte,memWrte,jmpe,brnche,aluSrce,reade;
-    logic [1:0] rsltSrce,ujMuxe;
+    logic regWrte,memWrte,jmpe,brnche,aluSrce,reade,div_ene;
+    logic [1:0] rsltSrce,ujMuxe,divCtrle;
     logic [2:0] immSrce;
     logic [4:0] aluCtrle;
 
-    ctrl Control(op,funct3d,funct7,regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd,rsltSrcd,ujMuxd,immSrcd,aluCtrld);
+    ctrl Control(op,funct3d,funct7,regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd,div_end,rsltSrcd,ujMuxd,immSrcd,divCtrld,aluCtrld);
     
     logic [4:0] ad1d,ad2d,rdd;
     assign ad1d=instd[19:15];
@@ -73,7 +74,7 @@ module top (
     
     extend EXTEND(immSrcd,imm,immextd);
 
-    deex DE(clk,flushe,stalle,regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd,rsltSrcd,immSrcd,ujMuxd,aluCtrld,funct3d,regWrte,memWrte,jmpe,brnche,aluSrce,reade,rsltSrce,immSrce,ujMuxe,aluCtrle,funct3e,rd1d,rd2d,pcd,pc4d,immextd,ad1d,ad2d,rdd,rd1e,rd2e,pce,pc4e,immexte,ad1e,ad2e,rde);
+    deex DE(clk,flushe,stalle,regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd,div_end,rsltSrcd,immSrcd,ujMuxd,aluCtrld,funct3d,divCtrld,regWrte,memWrte,jmpe,brnche,aluSrce,reade,div_ene,rsltSrce,immSrce,ujMuxe,aluCtrle,funct3e,divCtrle,rd1d,rd2d,pcd,pc4d,immextd,ad1d,ad2d,rdd,rd1e,rd2e,pce,pc4e,immexte,ad1e,ad2e,rde);
 
     logic [31:0] srcAe,srcBe,wrtDe;
     logic [1:0] fwdAe,fwdBe;
@@ -113,12 +114,17 @@ module top (
         endcase
     end
 
-    logic [31:0] ujWrtBcke,aluRslte;
-    logic zeroe,lstBite;
+    logic [31:0] ujWrtBcke,aluRslte,divOut,aluOut;
+    logic zeroe,lstBite,divBusy,divDone;
     logic [31:0] ujWrtBckm,aluRsltm;
 
 
-    alu ALU(srcAe,srcBe,aluCtrle,aluRslte,zeroe,lstBite);
+    alu ALU(srcAe,srcBe,aluCtrle,aluOut,zeroe,lstBite);
+    divider DIV(clk,~rst,div_ene,divCtrle,srcAe,srcBe,divOut,divBusy,divDone);
+    
+    always_comb begin
+        aluRslte=(divDone)?divOut:aluOut;
+    end
 
     always_comb begin
         case(ujMuxe)
@@ -146,12 +152,12 @@ module top (
     logic [31:0] readDPreShiftm;
     logic [31:0] readDm;
     logic [31:0] readDw;
-    logic busy;
+    logic axiBusy;
     logic [2:0] funct3Bufferm;
     logic [3:0] strobem,strobeBufferm;
     loadstoredecoder LSD(aluRsltm,wrtDm,funct3m,wrtDShiftedm,strobem);
 
-    datmem_axi_lite DM(inf,memWrtm,aluRsltm,wrtDShiftedm,strobem,readm,readDPreShiftm,axi_error,busy);
+    datmem_axi_lite DM(inf,memWrtm,aluRsltm,wrtDShiftedm,strobem,readm,readDPreShiftm,axi_error,axiBusy);
     loadunit LU(funct3m,strobem,readDPreShiftm,readDm);
 
     logic [31:0] aluRsltw,pc4w,ujWrtBckw;
@@ -176,7 +182,7 @@ module top (
 
     logic stallf,stalld,stalle,stallm,flushd,flushe;
 
-    hazardunit HAZARD(ad1d,ad2d,ad1e,ad2e,rde,rdm,rdw,rsltSrce,rsltSrcm,pcSrc,regWrtm,regWrtw,busy,stallf,stalld,stalle,stallm,flushd,flushe,fwdAe,fwdBe);
+    hazardunit HAZARD(ad1d,ad2d,ad1e,ad2e,rde,rdm,rdw,rsltSrce,rsltSrcm,pcSrc,regWrtm,regWrtw,axiBusy,divBusy,stallf,stalld,stalle,stallm,flushd,flushe,fwdAe,fwdBe);
 
     logic bt;
     

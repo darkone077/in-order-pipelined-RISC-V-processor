@@ -14,17 +14,18 @@ module ctrl#(
     input logic [6:0] op,
     input logic [2:0] funct3,
     input logic  [6:0] funct7,
-    output logic regWrt,memWrt,jmp,brnch,aluSrc,read,
+    output logic regWrt,memWrt,jmp,brnch,aluSrc,read,div_en,
     output logic [1:0] rsltSrc,ujMux,
     output logic [2:0] immSrc,
+    output logic [1:0] divCtrl,
     output logic [4:0] aluCtrl
 );
 
 
-
+    /* verilator lint_off LATCH */
     always_comb begin 
         case(op)
-
+            
             iLoadType:begin
                 regWrt=1'b1;
                 memWrt=1'b0;
@@ -36,6 +37,8 @@ module ctrl#(
                 aluCtrl=5'b00000;
                 ujMux=2'bxx;
                 read=1'b1;
+                divCtrl=2'bxx;
+                div_en=1'b0;
             end
 
             iALUType:begin
@@ -48,6 +51,8 @@ module ctrl#(
                 rsltSrc=2'b00;
                 ujMux=2'bxx;
                 read=1'b0;
+                divCtrl=2'bxx;
+                div_en=1'b0;
                 case(funct3)
                     3'b000: //addi
                         aluCtrl=5'b00000;
@@ -80,6 +85,13 @@ module ctrl#(
                 rsltSrc=2'b00;
                 ujMux=2'bxx;
                 read=1'b0;
+
+                if (funct7[0]&funct3[2]) begin
+                    div_en=1'b1;
+                    aluCtrl=5'b00000;
+                end
+                else div_en=1'b0;
+
                 case(funct3)
                     3'b000: //mul, add, sub
                         if(funct7[0]) aluCtrl=5'b01010;
@@ -94,16 +106,20 @@ module ctrl#(
                     3'b011: //mulu, sltu
                         if(funct7[0]) aluCtrl=5'b01100;
                         else aluCtrl=5'b01001;
-                    3'b100: //xor
-                        aluCtrl=5'b00100;
-                    3'b101: //sra, srl
-                        if(funct7[5]) aluCtrl=5'b01000;
+                    3'b100: //div, xor
+                        if(funct7[0]) divCtrl=2'b00;
+                        else aluCtrl=5'b00100;
+                    3'b101: //divu, sra, srl
+                        if(funct7[0]) divCtrl=2'b01;
+                        else if(funct7[5]) aluCtrl=5'b01000;
                         else aluCtrl=5'b00110;
+                    3'b110: //rem, or
+                        if(funct7[0]) divCtrl=2'b10;
+                        else aluCtrl=5'b00011;
+                    3'b111: //remu, and
+                        if(funct7[0]) divCtrl=2'b11;
+                        else aluCtrl=5'b00010;
                         
-                    3'b110: //or
-                        aluCtrl=5'b00011;
-                    3'b111: //and
-                        aluCtrl=5'b00010;
                 endcase
             end
 
@@ -118,10 +134,11 @@ module ctrl#(
                 aluCtrl=5'b00000;
                 ujMux=2'bxx;
                 read=1'b0;
+                divCtrl=2'bxx;
+                div_en=1'b0;
             end
 
             bType:begin 
-
                 regWrt=1'b0;
                 memWrt=1'b0;
                 immSrc=3'b010;
@@ -131,6 +148,8 @@ module ctrl#(
                 rsltSrc=2'bxx;
                 ujMux=2'b01;
                 read=1'b0;
+                divCtrl=2'bxx;
+                div_en=1'b0;
                 case(funct3) 
                     3'b000,3'b001: //beq, bne
                         aluCtrl=5'b00001;
@@ -154,13 +173,14 @@ module ctrl#(
                 rsltSrc=2'b11;
                 aluCtrl=5'b0xxxx;
                 read=1'b0;
+                divCtrl=2'bxx;
+                div_en=1'b0;
                 if(op==uTypeLUI) ujMux=2'b00;
                 else ujMux=2'b01;
                 
             end
 
             jType,jTypeJALR:begin
-
                 regWrt=1'b1;
                 memWrt=1'b0;
                 read=1'b0;
@@ -177,7 +197,8 @@ module ctrl#(
                 aluSrc=1'bx;
                 rsltSrc=2'b10;
                 aluCtrl=5'b0xxxx;
-                
+                divCtrl=2'bxx;
+                div_en=1'b0;
             end
 
             default:begin
@@ -191,6 +212,8 @@ module ctrl#(
                 aluCtrl=5'b0xxxx;
                 ujMux=2'bxx; 
                 read=1'b0; 
+                divCtrl=2'bxx;
+                div_en=1'b0;
             end  
 
 
