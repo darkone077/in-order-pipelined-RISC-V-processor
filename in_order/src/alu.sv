@@ -14,11 +14,7 @@ module alu #(
     parameter MUL=5'b01010,
     parameter MULH=5'b01011,
     parameter MULHU=5'b01100,
-    parameter MULHSU=5'b01101,
-    parameter DIV=5'b01110,
-    parameter DIVU=5'b01111,
-    parameter REM=5'b10000,
-    parameter REMU=5'b10001
+    parameter MULHSU=5'b01101
 
 ) (
     input logic [31:0] src1,
