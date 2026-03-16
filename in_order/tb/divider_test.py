@@ -25,6 +25,16 @@ async def test(dut):
         if(sr2!=0):
             assert ans==int(sr1/sr2),f'{dut.divOut.value}!={dut.src1.value}/s{dut.src2.value}'
     
+    dut.src1.value=randint(-0x80000000,0x7fffffff)
+    dut.src2.value=0
+    dut.divCtrl.value=0b00  
+    while(dut.busy.value!=1):
+        await RisingEdge(dut.clk)
+    while(dut.busy.value):
+        await RisingEdge(dut.clk)
+        
+    assert int(dut.divOut.value)==0xffffffff,'wrong div by 0 o/p'
+    
     #divu     
     for i in range(1000):
         sr1=randint(0x0,0xffffffff)
@@ -39,7 +49,17 @@ async def test(dut):
         ans=dut.divOut.value
         if(sr2!=0):
             assert ans==int(sr1/sr2),f'{dut.divOut.value}!={dut.src1.value}/u{dut.src2.value}'
+            
+    dut.src1.value=randint(0x0,0xffffffff)
+    dut.src2.value=0
+    dut.divCtrl.value=0b01  
+    while(dut.busy.value!=1):
+        await RisingEdge(dut.clk)
+    while(dut.busy.value):
+        await RisingEdge(dut.clk)
      
+    assert int(dut.divOut.value)==0xffffffff,'wrong div by 0 o/p'
+    
     #rem       
     for i in range(1000):
         sr1=randint(-0x80000000,0x7fffffff)
@@ -55,6 +75,16 @@ async def test(dut):
         rem=(abs(sr1)%abs(sr2))*(-1 if sr1<0 else 1)
         if(sr2!=0):
             assert ans==int(rem),f'{hex(dut.divOut.value)}!={hex(dut.src1.value)}%s{hex(dut.src2.value)}'
+            
+    dut.src1.value=randint(-0x80000000,0x7fffffff)
+    dut.src2.value=0
+    dut.divCtrl.value=0b10 
+    while(dut.busy.value!=1):
+        await RisingEdge(dut.clk)
+    while(dut.busy.value):
+        await RisingEdge(dut.clk)
+     
+    assert int(dut.divOut.value)==dut.src1.value,'wrong div by 0 reminder o/p'
     #remu    
     for i in range(1000):
         sr1=randint(0x0,0xffffffff)
@@ -69,3 +99,13 @@ async def test(dut):
         ans=dut.divOut.value
         if(sr2!=0):
             assert ans==int(sr1%sr2),f'{dut.divOut.value}!={dut.src1.value}%u{dut.src2.value}'
+            
+    dut.src1.value=randint(0x0,0xffffffff)
+    dut.src2.value=0
+    dut.divCtrl.value=0b11  
+    while(dut.busy.value!=1):
+        await RisingEdge(dut.clk)
+    while(dut.busy.value):
+        await RisingEdge(dut.clk)
+     
+    assert int(dut.divOut.value)==dut.src1.value,'wrong div by 0 reminder o/p'

@@ -91,6 +91,7 @@ async def test(dut):
         branch=0b0
         alu_src=0b0
         rslt_src=0b00
+        div_ctrl=0b00
         match funct_3:
             case 0b000: #mul, add, sub
                 alu_ctrl=0b01010 if funct_7b0 else 0b0001 if funct_7b5 else 0b0000
@@ -101,12 +102,16 @@ async def test(dut):
             case 0b011: #mulu, sltu
                 alu_ctrl=0b01100 if funct_7b0 else 0b1001
             case 0b100: #xor
+                div_ctrl=0b00
                 alu_ctrl=0b0100
             case 0b101: #sra, srl
+                div_ctrl=0b01
                 alu_ctrl=0b1000 if funct_7b5 else 0b0110
             case 0b110: #or
+                div_ctrl=0b10
                 alu_ctrl=0b0011
             case 0b111: #and
+                div_ctrl=0b11
                 alu_ctrl=0b0010
         
         Timer(1,'ns')
@@ -116,7 +121,10 @@ async def test(dut):
         assert dut.brnch.value==branch
         assert dut.aluSrc.value==alu_src
         assert dut.rsltSrc.value==rslt_src
-        assert dut.aluCtrl.value==alu_ctrl
+        if(funct_3>>2 and funct_7b0):
+            assert dut.divCtrl.value==div_ctrl
+        else:
+            assert dut.aluCtrl.value==alu_ctrl
         
     #stype
     opc=0b0100011

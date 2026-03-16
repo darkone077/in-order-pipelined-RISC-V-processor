@@ -52,6 +52,10 @@ always_ff @(posedge clk) begin
                 N<=32-zCount;
                 sign=src1[31]^(~divCtrl[1]&src2[31]);
                 divDone<=1'b0;
+                if (~src2Valid) begin
+                    if(~divCtrl[1]) divOut<=32'hffffffff;
+                    else divOut<=src1;
+                end
             end
             DIV:begin
                 if (N==0) begin
@@ -108,10 +112,10 @@ always_comb begin
             done=1'b0;
             if (div_en) begin
                 if (~src2Valid|src1Zero) begin
-                state_nxt=DONE;
+                    state_nxt=DONE;
                 end
                 else begin
-                state_nxt=DIV;
+                    state_nxt=DIV;
                 end
                 busy=1'b1;
 
