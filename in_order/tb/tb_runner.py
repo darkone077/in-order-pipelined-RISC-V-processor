@@ -27,4 +27,4 @@ if __name__=="__main__":
     tb_runner('datmem_axi_lite_wrapper')
     tb_runner('loadstoredecoder')
     tb_runner('loadunit')
-    tb_runner('divider')
+    tb_runner('clint_wrapper')
