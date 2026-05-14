@@ -6,8 +6,8 @@ module clint#(
 );
 
     localparam MSIP=32'h0000;
-    localparam MTIMECMPLOW=32'h00004000; 
-    localparam MTIMECMPHIGH=32'h00004004;
+    localparam MTIMECMPLOW=32'h4000; 
+    localparam MTIMECMPHIGH=32'h4004;
     localparam MTIMELOW=32'hbff8;
     localparam MTIMEHIGH=32'hbffc;
 
@@ -20,7 +20,7 @@ module clint#(
     always_ff @(posedge ais.ACLK) begin
         if(~ais.ARSTN)begin
             mtime<=64'b0;
-            mtimecmp<=64'hffffffff;
+            mtimecmp<=64'hffffffffffffffff;
             msip<=32'b0;
 
         end

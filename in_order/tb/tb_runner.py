@@ -28,3 +28,4 @@ if __name__=="__main__":
     tb_runner('loadstoredecoder')
     tb_runner('loadunit')
     tb_runner('clint_wrapper')
+    tb_runner('datram_wrapper')

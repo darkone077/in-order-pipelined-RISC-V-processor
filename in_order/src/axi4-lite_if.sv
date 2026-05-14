@@ -1,3 +1,7 @@
+`ifndef AXI4_LITE_IF
+`define AXI4_LITE_IF
+
+
 interface axi4_if #(
     parameter DATA_WIDTH=32,
     parameter ADDR_WIDTH=32
@@ -44,3 +48,5 @@ modport SLAVE(
 );
     
 endinterface
+
+`endif
