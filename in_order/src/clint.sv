@@ -1,7 +1,7 @@
 module clint#(
-    parameter BASE=32'h200000
+    parameter BASE=32'h2000000
 )(
-    axi4_if.SLAVE ais,
+    axi4_lite_if.SLAVE ais,
     output logic timerIrq,softIrq
 );
 

@@ -1,6 +1,6 @@
 //`include "../src/axi4-lite_if.sv"
 module datmem_axi_lite(
-    axi4_if.MASTER aim,
+    axi4_lite_if.MASTER aim,
     input logic memWrt,
     input logic [31:0] memAd,
     input logic [31:0] wrtDat,
@@ -29,8 +29,8 @@ always_ff @(posedge aim.ACLK) begin
             
         end
         else if (state==WRT_SEND) begin
-                if (aim.AWVALID&&aim.AWREADY) aw_done<=1'b1;
-                if (aim.WVALID&&aim.WREADY)  w_done<=1'b1;
+            if (aim.AWREADY) aw_done<=1'b1;
+            if (aim.WREADY)  w_done<=1'b1;
         end
 
         else begin

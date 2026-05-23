@@ -2,14 +2,14 @@
 `include "../src/clint_wrapper.sv"
 `include "../src/datram_wrapper.sv"
 module sim_wrapper#(
-    parameter BASE = 32'h20000
+    parameter BASE = 32'h200000
 )(
     input logic clk,rst_n,
     output logic axi_error,timerIrq,softIrq,
     output logic [31:0] pcf,pcj
 );
 
-    axi4_if axiBus(clk,rst_n);
+    axi4_lite_if axiBus(clk,rst_n);
     
     // Write Address Channel
     logic [31:0] axi_awaddr;

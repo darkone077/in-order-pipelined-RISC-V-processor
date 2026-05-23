@@ -43,7 +43,7 @@ module datmem_axi_lite_wrapper (
     output logic axi_rready
 );
 
-    axi4_if axi_bus(clk,rst_n);
+    axi4_lite_if axi_bus(clk,rst_n);
 
     //Wrt Addr
     assign axi_awaddr  = axi_bus.AWADDR;

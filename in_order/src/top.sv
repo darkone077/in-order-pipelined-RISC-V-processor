@@ -22,7 +22,7 @@ module top (
     input logic rst,
     output logic axi_error,
     output logic [31:0] pcf, pcj,
-    axi4_if.MASTER inf
+    axi4_lite_if.MASTER inf
     
 );
     

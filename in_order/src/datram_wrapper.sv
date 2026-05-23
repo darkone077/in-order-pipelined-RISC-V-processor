@@ -33,7 +33,7 @@ module datram_wrapper(
     input logic axi_rready
 );
 
-    axi4_if axi_bus(clk,rst_n);
+    axi4_lite_if axi_bus(clk,rst_n);
 
     //Wrt Addr
     assign axi_bus.AWADDR = axi_awaddr;

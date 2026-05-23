@@ -2,7 +2,7 @@
 `define AXI4_LITE_IF
 
 
-interface axi4_if #(
+interface axi4_lite_if #(
     parameter DATA_WIDTH=32,
     parameter ADDR_WIDTH=32
 )(

@@ -1,7 +1,7 @@
 module datram#(
-    parameter WORDS=2**32
+    parameter WORDS=2**20
 )(
-    axi4_if.SLAVE ais
+    axi4_lite_if.SLAVE ais
 );
 
     typedef enum logic [1:0] {IDLE,WRT_RECIEVE,WRTRESP_SEND,RDATA_SEND} state_t;
@@ -52,11 +52,12 @@ module datram#(
             ais.RDATA=32'b0;
             ais.BVALID=1'b0;
             ais.RVALID=1'b0;
-            if (ais.ARVALID) begin
-                state_nxt=RDATA_SEND;
-            end
-            else if (ais.AWVALID) begin
+            
+            if (ais.AWVALID) begin
                 state_nxt=WRT_RECIEVE;
+            end
+            else if (ais.ARVALID) begin
+                state_nxt=RDATA_SEND;
             end
             else begin
                 state_nxt=IDLE;
