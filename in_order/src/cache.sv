@@ -582,12 +582,12 @@ always_comb begin
                     end
                     else begin
                         master_state_nxt=IDLE_M;
-                        busy=1'b0;
+                        busy=1'b1;
                     end
                 end
                 else begin
                     master_state_nxt=IDLE_M;
-                    busy=1'b0;
+                    busy=1'b1;
                 end
                 
             end

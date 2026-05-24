@@ -1,5 +1,5 @@
 from pathlib import Path
-from cocotb.runner import get_runner
+from cocotb_tools.runner import get_runner
 import os
 
 def tb_runner(mod):
@@ -7,7 +7,7 @@ def tb_runner(mod):
     path=Path(__file__).resolve().parent.parent
     srcs=[path/f"src/{mod}.sv"]
     runner=get_runner(sim)
-    runner.build(hdl_toplevel=f"{mod}",sources=srcs)
+    runner.build(hdl_toplevel=f"{mod}",sources=srcs,build_args=["-Wno-UNOPTFLAT"])
     
     runner.test(hdl_toplevel=f"{mod}",test_module=f'{mod}_test')
     
@@ -29,3 +29,5 @@ if __name__=="__main__":
     tb_runner('loadunit')
     tb_runner('clint_wrapper')
     tb_runner('datram_wrapper')
+    tb_runner('cache_wrapper')
+    tb_runner('ram_wrapper')

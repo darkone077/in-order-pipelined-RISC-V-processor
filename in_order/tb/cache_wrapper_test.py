@@ -144,3 +144,12 @@ async def test(dut):
     await read_data_test(dut,0x500204,val1,axil_m)
     await read_data_test(dut,0x80020c,val4,axil_m)
     await read_data_test(dut,0x900200,val5,axil_m)
+    
+    #inst+data test
+    dat=data_gen(16,axi_ram,0x300500)
+    dut.pc.value=0x300500
+    axil_m.init_write(0x300600,b'\x45\x78\x89\x23')
+    await ClockCycles(dut.clk,40)
+    data=await axil_m.read(0x300600,4)
+    assert int.from_bytes(data.data)==int.from_bytes(b'\x45\x78\x89\x23')
+    assert int(dut.inst.value)==dat[0]

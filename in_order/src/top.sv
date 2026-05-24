@@ -22,6 +22,8 @@ module top (
     input logic rst,
     output logic axi_error,
     output logic [31:0] pcf, pcj,
+    input logic [31:0] instf,
+    input logic cacheBusy,
     axi4_lite_if.MASTER inf
     
 );
@@ -29,14 +31,13 @@ module top (
     logic [31:0] pcd;
     logic [31:0] pc4f;
     logic [31:0] pc4d;
-    logic [31:0] instf;
     logic [31:0] instd;
     logic pcSrc;
     
     assign pcj=ujWrtBcke;
     assign pc4f=pcf+4;
     pc PC(clk,pcSrc,stallf,rst,pc4f,pcj,pcf);
-    instmem IM(pcf,instf);
+    //instmem IM(pcf,instf);
     fede FD(clk,flushd|rst,stalld,instf,pc4f,pcf,instd,pc4d,pcd);
 
     logic [6:0] op;
@@ -182,7 +183,7 @@ module top (
 
     logic stallf,stalld,stalle,stallm,flushd,flushe;
 
-    hazardunit HAZARD(ad1d,ad2d,ad1e,ad2e,rde,rdm,rdw,rsltSrce,rsltSrcm,pcSrc,regWrtm,regWrtw,axiBusy,divBusy,stallf,stalld,stalle,stallm,flushd,flushe,fwdAe,fwdBe);
+    hazardunit HAZARD(ad1d,ad2d,ad1e,ad2e,rde,rdm,rdw,rsltSrce,rsltSrcm,pcSrc,regWrtm,regWrtw,axiBusy,divBusy,cacheBusy,stallf,stalld,stalle,stallm,flushd,flushe,fwdAe,fwdBe);
 
     logic bt;
     

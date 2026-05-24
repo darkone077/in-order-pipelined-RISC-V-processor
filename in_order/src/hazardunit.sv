@@ -3,7 +3,7 @@
 module hazardunit (
     input logic[4:0] rs1d,rs2d,rs1e,rs2e,rde,rdm,rdw,
     input logic [1:0] rsltSrce,rsltSrcm,
-    input logic pcSrce,regWrtm,regWrtw,axiBusy,divBusy,
+    input logic pcSrce,regWrtm,regWrtw,axiBusy,divBusy,cacheBusy,
     output logic stallf,stalld,stalle,stallm,flushd,flushe,
     output logic [1:0] fwdAe,fwdBe
 );
@@ -21,8 +21,8 @@ module hazardunit (
 
         lwstall=(rsltSrce==2'b01)&&((rde==rs1d)||(rde==rs2d));
         wrtreadstall=axiBusy;
-        stalld=lwstall|wrtreadstall|divBusy;
-        stallf=lwstall|wrtreadstall|divBusy;
+        stalld=lwstall|wrtreadstall|divBusy|cacheBusy;
+        stallf=lwstall|wrtreadstall|divBusy|cacheBusy;
         stalle=wrtreadstall|divBusy;
         stallm=wrtreadstall;
         flushe=(lwstall|pcSrce)&!axiBusy;

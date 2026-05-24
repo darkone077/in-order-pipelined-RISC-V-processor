@@ -2,10 +2,12 @@
 //`include "../src/axi4-lite_if.sv"
 `include "../src/top.sv"
 module axi_wrapper (
-    //datmem IO
+    //top IO
     input  logic clk,
     input  logic rst_n,
     output logic axi_error,
+    input logic [31:0] inst,
+    input logic cacheBusy,
     output logic [31:0] pcf,pcj,
 
     // Write Address Channel
@@ -69,5 +71,5 @@ module axi_wrapper (
     assign axi_bus.RVALID = axi_rvalid;   
     assign axi_rready  = axi_bus.RREADY;
 
-    top RV32IM(clk,~rst_n,axi_error,pcf,pcj,axi_bus.MASTER);
+    top RV32IM(clk,~rst_n,axi_error,pcf,pcj,inst,cacheBusy,axi_bus.MASTER);
 endmodule

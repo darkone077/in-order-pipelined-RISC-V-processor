@@ -1,103 +1,138 @@
 `include "../src/axi_wrapper.sv"
 `include "../src/clint_wrapper.sv"
-`include "../src/datram_wrapper.sv"
+`include "../src/ram_wrapper.sv"
+`include "../src/cache_wrapper.sv"
 module sim_wrapper#(
-    parameter BASE = 32'h200000
+    parameter BASE = 32'h2000000
 )(
     input logic clk,rst_n,
     output logic axi_error,timerIrq,softIrq,
     output logic [31:0] pcf,pcj
 );
 
-    axi4_lite_if axiBus(clk,rst_n);
-    
+    logic [31:0] inst;
+    logic cacheBusy;
+    logic flush;
+
+    // ==========================================
+    // AXI-Lite Signals (CPU & General Routing)
+    // ==========================================
     // Write Address Channel
-    logic [31:0] axi_awaddr;
-    logic axi_awvalid;
-    logic axi_awready;
-    logic [2:0] axi_awprot;
+    logic [31:0] axil_awaddr;
+    logic axil_awvalid;
+    logic axil_awready;
+    logic [2:0] axil_awprot;
 
     // Write Data Channel
-    logic [31:0] axi_wdata;
-    logic [3:0] axi_wstrb;
-    logic axi_wvalid;
-    logic axi_wready;
+    logic [31:0] axil_wdata;
+    logic [3:0] axil_wstrb;
+    logic axil_wvalid;
+    logic axil_wready;
 
     // Write Response Channel
-    logic [1:0] axi_bresp;
-    logic axi_bvalid;
-    logic axi_bready;
+    logic [1:0] axil_bresp;
+    logic axil_bvalid;
+    logic axil_bready;
 
     // Read Address Channel
-    logic [31:0] axi_araddr;
-    logic axi_arvalid;
-    logic axi_arready;
-    logic [2:0] axi_arprot;
+    logic [31:0] axil_araddr;
+    logic axil_arvalid;
+    logic axil_arready;
+    logic [2:0] axil_arprot;
 
     // Read Data Channel
-    logic [31:0] axi_rdata;
-    logic [1:0] axi_rresp;
-    logic axi_rvalid;
-    logic axi_rready;
+    logic [31:0] axil_rdata;
+    logic [1:0] axil_rresp;
+    logic axil_rvalid;
+    logic axil_rready;
 
-    // Write Address Channel CLINT
-    logic [31:0] c_axi_awaddr;
-    logic c_axi_awvalid;
-    logic c_axi_awready;
-    logic [2:0] c_axi_awprot;
+    // ==========================================
+    // AXI-Lite Signals (CLINT Specific)
+    // ==========================================
+    logic c_axil_awvalid;
+    logic c_axil_awready;
+    logic c_axil_wready;
+    logic [1:0] c_axil_bresp;
+    logic c_axil_bvalid;
 
-    // Write Data Channel CLINT
-    logic [31:0] c_axi_wdata;
-    logic [3:0] c_axi_wstrb;
-    logic c_axi_wvalid;
-    logic c_axi_wready;
+    logic c_axil_arvalid;
+    logic c_axil_arready;
+    logic [31:0] c_axil_rdata;
+    logic [1:0] c_axil_rresp;
+    logic c_axil_rvalid;
 
-    // Write Response Channel CLINT
-    logic [1:0] c_axi_bresp;
-    logic c_axi_bvalid;
-    logic c_axi_bready;
+    // ==========================================
+    // AXI-Lite Signals (CACHE Specific)
+    // ==========================================
+    logic d_axil_awvalid;
+    logic d_axil_awready;
+    logic d_axil_wready;
+    logic [1:0] d_axil_bresp;
+    logic d_axil_bvalid;
 
-    // Read Address  CLINT
-    logic [31:0] c_axi_araddr;
-    logic c_axi_arvalid;
-    logic c_axi_arready;
-    logic [2:0] c_axi_arprot;
+    logic d_axil_arvalid;
+    logic d_axil_arready;
+    logic [31:0] d_axil_rdata;
+    logic [1:0] d_axil_rresp;
+    logic d_axil_rvalid;
 
-    // Read Data Channel CLINT
-    logic [31:0] c_axi_rdata;
-    logic [1:0] c_axi_rresp;
-    logic c_axi_rvalid;
-    logic c_axi_rready;
-
-    // Write Address Channel dram
+    // ==========================================
+    // Full AXI Signals (RAM)
+    // ==========================================
+    // Write Address Channel
     logic [31:0] d_axi_awaddr;
     logic d_axi_awvalid;
     logic d_axi_awready;
     logic [2:0] d_axi_awprot;
+    logic [3:0] d_axi_awid;
+    logic [7:0] d_axi_awlen;
+    logic [1:0] d_axi_awburst;
+    logic [2:0] d_axi_awsize;
+    logic [3:0] d_axi_awqos;
+    logic [3:0] d_axi_awregion;
+    logic [3:0] d_axi_awcache;
+    logic d_axi_awlock;
 
-    // Write Data Channel dram
+    // Write Data Channel
     logic [31:0] d_axi_wdata;
     logic [3:0] d_axi_wstrb;
+    logic d_axi_wlast;
     logic d_axi_wvalid;
     logic d_axi_wready;
 
-    // Write Response Channel dram
+    // Write Response Channel
+    logic [3:0] d_axi_bid;
     logic [1:0] d_axi_bresp;
     logic d_axi_bvalid;
     logic d_axi_bready;
 
-    // Read Address Channel dram
+    // Read Address Channel
+    logic [3:0] d_axi_arid;
     logic [31:0] d_axi_araddr;
+    logic [7:0] d_axi_arlen;
+    logic [2:0] d_axi_arsize;
+    logic [1:0] d_axi_arburst;
+    logic [3:0] d_axi_arcache;
+    logic [2:0] d_axi_arprot;
+    logic [3:0] d_axi_arqos;
+    logic [3:0] d_axi_arregion;
+    logic d_axi_arlock;
     logic d_axi_arvalid;
     logic d_axi_arready;
-    logic [2:0] d_axi_arprot;
 
     // Read Data Channel
+    logic [3:0] d_axi_rid;
     logic [31:0] d_axi_rdata;
     logic [1:0] d_axi_rresp;
+    logic d_axi_rlast;
     logic d_axi_rvalid;
     logic d_axi_rready;
 
+    // ==========================================
+    // Modules
+    // ==========================================
+    
+    // CPU with purely AXI-Lite interface
     axi_wrapper CPU (
         // System Signals
         .clk(clk),
@@ -105,43 +140,47 @@ module sim_wrapper#(
         
         // Simple Interface (CPU side)
         .axi_error(axi_error),
+        .inst(inst),
+        .cacheBusy(cacheBusy),
         .pcf(pcf),
         .pcj(pcj),
 
         // AXI Write Address
-        .axi_awaddr(axi_awaddr),
-        .axi_awvalid(axi_awvalid),
-        .axi_awready(axi_awready),
-        .axi_awprot(axi_awprot),
+        .axi_awaddr(axil_awaddr),
+        .axi_awvalid(axil_awvalid),
+        .axi_awready(axil_awready),
+        .axi_awprot(axil_awprot),
 
         // AXI Write Data
-        .axi_wdata(axi_wdata),
-        .axi_wstrb(axi_wstrb),
-        .axi_wvalid(axi_wvalid),
-        .axi_wready(axi_wready),
+        .axi_wdata(axil_wdata),
+        .axi_wstrb(axil_wstrb),
+        .axi_wvalid(axil_wvalid),
+        .axi_wready(axil_wready),
 
         // AXI Write Response
-        .axi_bresp(axi_bresp),
-        .axi_bvalid(axi_bvalid),
-        .axi_bready(axi_bready),
+        .axi_bresp(axil_bresp),
+        .axi_bvalid(axil_bvalid),
+        .axi_bready(axil_bready),
 
         // AXI Read Address
-        .axi_araddr(axi_araddr),
-        .axi_arvalid(axi_arvalid),
-        .axi_arready(axi_arready),
-        .axi_arprot(axi_arprot),
+        .axi_araddr(axil_araddr),
+        .axi_arvalid(axil_arvalid),
+        .axi_arready(axil_arready),
+        .axi_arprot(axil_arprot),
 
         // AXI Read Data
-        .axi_rdata(axi_rdata),
-        .axi_rresp(axi_rresp),
-        .axi_rvalid(axi_rvalid),
-        .axi_rready(axi_rready)
+        .axi_rdata(axil_rdata),
+        .axi_rresp(axil_rresp),
+        .axi_rvalid(axil_rvalid),
+        .axi_rready(axil_rready)
     );
 
-    assign c_axi_arvalid=axi_arvalid&(axi_araddr>=BASE);
-    assign d_axi_arvalid=axi_arvalid&(axi_araddr<BASE);
-    assign c_axi_awvalid=axi_awvalid&(axi_awaddr>=BASE);
-    assign d_axi_awvalid=axi_awvalid&(axi_awaddr<BASE);
+    // Decoding Valid Logic
+    assign c_axil_arvalid = axil_arvalid & (axil_araddr >= BASE);
+    assign d_axil_arvalid = axil_arvalid & (axil_araddr < BASE);
+    
+    assign c_axil_awvalid = axil_awvalid & (axil_awaddr >= BASE);
+    assign d_axil_awvalid = axil_awvalid & (axil_awaddr < BASE);
     
     clint_wrapper CLINT(
         // System Signals
@@ -152,72 +191,181 @@ module sim_wrapper#(
         .timerIrq(timerIrq),
         .softIrq(softIrq),
 
-        // AXI Write Address
-        .axi_awaddr(axi_awaddr),
-        .axi_awvalid(c_axi_awvalid),
-        .axi_awready(c_axi_awready),
+        // AXI-Lite Interface
+        .axi_awaddr(axil_awaddr),
+        .axi_awvalid(c_axil_awvalid),
+        .axi_awready(c_axil_awready),
 
-        // AXI Write Data
-        .axi_wdata(axi_wdata),
-        .axi_wstrb(axi_wstrb),
-        .axi_wvalid(axi_wvalid),
-        .axi_wready(c_axi_wready),
+        .axi_wdata(axil_wdata),
+        .axi_wstrb(axil_wstrb),
+        .axi_wvalid(axil_wvalid),
+        .axi_wready(c_axil_wready),
 
-        // AXI Write Response
-        .axi_bresp(c_axi_bresp),
-        .axi_bvalid(c_axi_bvalid),
-        .axi_bready(axi_bready),
+        .axi_bresp(c_axil_bresp),
+        .axi_bvalid(c_axil_bvalid),
+        .axi_bready(axil_bready),
 
-        // AXI Read Address
-        .axi_araddr(axi_araddr),
-        .axi_arvalid(c_axi_arvalid),
-        .axi_arready(c_axi_arready),
+        .axi_araddr(axil_araddr),
+        .axi_arvalid(c_axil_arvalid),
+        .axi_arready(c_axil_arready),
 
-        // AXI Read Data
-        .axi_rdata(c_axi_rdata),
-        .axi_rresp(c_axi_rresp),
-        .axi_rvalid(c_axi_rvalid),
-        .axi_rready(axi_rready));
+        .axi_rdata(c_axil_rdata),
+        .axi_rresp(c_axil_rresp),
+        .axi_rvalid(c_axil_rvalid),
+        .axi_rready(axil_rready)
+    );
 
-    datram_wrapper DATRAM(
+    cache_wrapper CACHE (
+        // cache IO
+        .clk(clk),
+        .rst_n(rst_n),
+        .pc(pcf),
+        .flush(flush),
+        .inst(inst),
+        .busy(cacheBusy),
+
+        // Full AXI Write Address Channel (to RAM)
+        .axi_awaddr(d_axi_awaddr),
+        .axi_awvalid(d_axi_awvalid),
+        .axi_awready(d_axi_awready),
+        .axi_awprot(d_axi_awprot),
+        .axi_awid(d_axi_awid),
+        .axi_awlen(d_axi_awlen),
+        .axi_awburst(d_axi_awburst),
+        .axi_awsize(d_axi_awsize),
+        .axi_awqos(d_axi_awqos),
+        .axi_awregion(d_axi_awregion),
+        .axi_awcache(d_axi_awcache),
+        .axi_awlock(d_axi_awlock),
+
+        // Full AXI Write Data Channel (to RAM)
+        .axi_wdata(d_axi_wdata),
+        .axi_wstrb(d_axi_wstrb),
+        .axi_wlast(d_axi_wlast),
+        .axi_wvalid(d_axi_wvalid),
+        .axi_wready(d_axi_wready),
+
+        // Full AXI Write Response Channel (from RAM)
+        .axi_bid(d_axi_bid),
+        .axi_bresp(d_axi_bresp),
+        .axi_bvalid(d_axi_bvalid),
+        .axi_bready(d_axi_bready),
+
+        // Full AXI Read Address Channel (to RAM)
+        .axi_arid(d_axi_arid),
+        .axi_araddr(d_axi_araddr),
+        .axi_arlen(d_axi_arlen),
+        .axi_arsize(d_axi_arsize),
+        .axi_arburst(d_axi_arburst),
+        .axi_arcache(d_axi_arcache),
+        .axi_arprot(d_axi_arprot),
+        .axi_arqos(d_axi_arqos),
+        .axi_arregion(d_axi_arregion),
+        .axi_arlock(d_axi_arlock),
+        .axi_arvalid(d_axi_arvalid),
+        .axi_arready(d_axi_arready),
+
+        // Full AXI Read Data Channel (from RAM)
+        .axi_rid(d_axi_rid),
+        .axi_rdata(d_axi_rdata),
+        .axi_rresp(d_axi_rresp),
+        .axi_rlast(d_axi_rlast),
+        .axi_rvalid(d_axi_rvalid),
+        .axi_rready(d_axi_rready),
+
+        // AXI-Lite Write Address Channel (from CPU)
+        .axil_awaddr(axil_awaddr),
+        .axil_awvalid(d_axil_awvalid),
+        .axil_awready(d_axil_awready),
+        .axil_awprot(axil_awprot),
+
+        // AXI-Lite Write Data Channel (from CPU)
+        .axil_wdata(axil_wdata),
+        .axil_wstrb(axil_wstrb),
+        .axil_wvalid(axil_wvalid),
+        .axil_wready(d_axil_wready),
+
+        // AXI-Lite Write Response Channel (to CPU)
+        .axil_bresp(d_axil_bresp),
+        .axil_bvalid(d_axil_bvalid),
+        .axil_bready(axil_bready),
+
+        // AXI-Lite Read Address Channel (from CPU)
+        .axil_araddr(axil_araddr),
+        .axil_arvalid(d_axil_arvalid),
+        .axil_arready(d_axil_arready),
+        .axil_arprot(axil_arprot),
+
+        // AXI-Lite Read Data Channel (to CPU)
+        .axil_rdata(d_axil_rdata),
+        .axil_rresp(d_axil_rresp),
+        .axil_rvalid(d_axil_rvalid),
+        .axil_rready(axil_rready)
+    );
+  
+    ram_wrapper RAM(
         // System Signals
         .clk(clk),
         .rst_n(rst_n),
         
-        // AXI Write Address
-        .axi_awaddr(axi_awaddr),
+        // Full AXI Interface
+        .axi_awaddr(d_axi_awaddr),
         .axi_awvalid(d_axi_awvalid),
         .axi_awready(d_axi_awready),
+        .axi_awprot(d_axi_awprot),
+        .axi_awid(d_axi_awid),
+        .axi_awlen(d_axi_awlen),
+        .axi_awburst(d_axi_awburst),
+        .axi_awsize(d_axi_awsize),
+        .axi_awqos(d_axi_awqos),
+        .axi_awregion(d_axi_awregion),
+        .axi_awcache(d_axi_awcache),
+        .axi_awlock(d_axi_awlock),
 
-        // AXI Write Data
-        .axi_wdata(axi_wdata),
-        .axi_wstrb(axi_wstrb),
-        .axi_wvalid(axi_wvalid),
+        .axi_wdata(d_axi_wdata),
+        .axi_wstrb(d_axi_wstrb),
+        .axi_wlast(d_axi_wlast),
+        .axi_wvalid(d_axi_wvalid),
         .axi_wready(d_axi_wready),
 
-        // AXI Write Response
+        .axi_bid(d_axi_bid),
         .axi_bresp(d_axi_bresp),
         .axi_bvalid(d_axi_bvalid),
-        .axi_bready(axi_bready),
+        .axi_bready(d_axi_bready),
 
-        // AXI Read Address
-        .axi_araddr(axi_araddr),
+        .axi_arid(d_axi_arid),
+        .axi_araddr(d_axi_araddr),
+        .axi_arlen(d_axi_arlen),
+        .axi_arsize(d_axi_arsize),
+        .axi_arburst(d_axi_arburst),
+        .axi_arcache(d_axi_arcache),
+        .axi_arprot(d_axi_arprot),
+        .axi_arqos(d_axi_arqos),
+        .axi_arregion(d_axi_arregion),
+        .axi_arlock(d_axi_arlock),
         .axi_arvalid(d_axi_arvalid),
         .axi_arready(d_axi_arready),
 
-        // AXI Read Data
+        .axi_rid(d_axi_rid),
         .axi_rdata(d_axi_rdata),
         .axi_rresp(d_axi_rresp),
+        .axi_rlast(d_axi_rlast),
         .axi_rvalid(d_axi_rvalid),
-        .axi_rready(axi_rready));
+        .axi_rready(d_axi_rready)
+    );
 
-        assign axi_wready=(axi_awaddr>=BASE)?c_axi_wready:d_axi_wready;
-        assign axi_awready=(axi_awaddr>=BASE)?c_axi_awready:d_axi_awready;
-        assign axi_bresp=(axi_awaddr>=BASE)?c_axi_bresp:d_axi_bresp;
-        assign axi_bvalid=(axi_awaddr>=BASE)?c_axi_bvalid:d_axi_bvalid;
-        assign axi_arready=(axi_araddr>=BASE)?c_axi_arready:d_axi_arready;
-        assign axi_rresp=(axi_araddr>=BASE)?c_axi_rresp:d_axi_rresp;
-        assign axi_rvalid=(axi_araddr>=BASE)?c_axi_rvalid:d_axi_rvalid;
-        assign axi_rdata=(axi_araddr>=BASE)?c_axi_rdata:d_axi_rdata;
+    // ==========================================
+    // Multiplex Responses Back to CPU
+    // ==========================================
+    assign axil_wready  = (axil_awaddr >= BASE) ? c_axil_wready  : d_axil_wready;
+    assign axil_awready = (axil_awaddr >= BASE) ? c_axil_awready : d_axil_awready;
+    assign axil_bresp   = (axil_awaddr >= BASE) ? c_axil_bresp   : d_axil_bresp;
+    assign axil_bvalid  = (axil_awaddr >= BASE) ? c_axil_bvalid  : d_axil_bvalid;
+    
+    assign axil_arready = (axil_araddr >= BASE) ? c_axil_arready : d_axil_arready;
+    assign axil_rresp   = (axil_araddr >= BASE) ? c_axil_rresp   : d_axil_rresp;
+    assign axil_rvalid  = (axil_araddr >= BASE) ? c_axil_rvalid  : d_axil_rvalid;
+    assign axil_rdata   = (axil_araddr >= BASE) ? c_axil_rdata   : d_axil_rdata;
+
 
 endmodule

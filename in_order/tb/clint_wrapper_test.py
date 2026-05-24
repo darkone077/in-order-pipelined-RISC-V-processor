@@ -4,7 +4,7 @@ from cocotbext.axi import AxiLiteMaster,AxiLiteBus
 
 @cocotb.test()
 async def test(dut):
-    BASE=0x200000
+    BASE=0x2000000
     MSIP=0x0
     MTIMECMPHIGH=0x4004
     MTIMECMPLOW=0x4000
