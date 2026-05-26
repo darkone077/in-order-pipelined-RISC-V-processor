@@ -1,9 +1,9 @@
 `timescale 1ns/1ps
 
-module hazardunit (
+module hazardunit_no_axi (
     input logic[4:0] rs1d,rs2d,rs1e,rs2e,rde,rdm,rdw,
     input logic [1:0] rsltSrce,rsltSrcm,ujMuxe,
-    input logic pcSrce,regWrtm,regWrtw,axiBusy,divBusy,cacheBusy,
+    input logic pcSrce,regWrtm,regWrtw,divBusy,cacheBusy,
     output logic stallf,stalld,stalle,stallm,flushd,flushe,
     output logic [1:0] fwdAe,fwdBe
 );
@@ -20,12 +20,11 @@ module hazardunit (
         else fwdBe=2'b00;
 
         lwstall=(rsltSrce==2'b01)&&((rde==rs1d)||(rde==rs2d));
-        wrtreadstall=axiBusy;
-        stalld=lwstall|wrtreadstall|divBusy|cacheBusy;
-        stallf=lwstall|wrtreadstall|divBusy|cacheBusy;
-        stalle=wrtreadstall|divBusy|cacheBusy;
-        stallm=wrtreadstall|cacheBusy;
-        flushe=(lwstall|pcSrce)&(!axiBusy)&!cacheBusy;
+        stalld=lwstall|divBusy|cacheBusy;
+        stallf=lwstall|divBusy|cacheBusy;
+        stalle=divBusy|cacheBusy;
+        stallm=cacheBusy;
+        flushe=(lwstall|pcSrce)&!cacheBusy;
         flushd=pcSrce;
     end
     

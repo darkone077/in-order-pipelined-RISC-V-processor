@@ -1,31 +1,31 @@
 `timescale 1ns/1ps
 `include "../src/alu.sv"
 `include "../src/ctrl.sv"
-`include "../src/datmem.sv"
 `include "../src/deex.sv"
 `include "../src/extend.sv"
 `include "../src/fede.sv"
-`include "../src/hazardunit.sv"
+`include "../src/hu_no_axi.sv"
 `include "../src/instmem.sv"
 `include "../src/mewb.sv"
 `include "../src/pc.sv"
 `include "../src/regfile.sv"
 `include "../src/exme.sv"
-`include "../src/axi4-lite_if.sv"
-`include "../src/datmem_axi_lite.sv"
 `include "../src/loadstoredecoder.sv"
 `include "../src/loadunit.sv"
 `include "../src/divider.sv"
 
-module top (
+module top_no_axi (
     input logic clk,
     input logic rst,
     output logic axi_error,
     output logic [31:0] pcf, pcj,
     input logic [31:0] instf,
     input logic cacheBusy,
-    axi4_lite_if.MASTER inf
-    
+    output logic read,wrt,
+    output logic [31:0] wrt_data,
+    output logic [31:0] mem_ad,
+    output logic [3:0] wrt_strb,
+    input logic [31:0] read_data
 );
     
     logic [31:0] pcd;
@@ -153,12 +153,18 @@ module top (
     logic [31:0] readDPreShiftm;
     logic [31:0] readDm;
     logic [31:0] readDw;
-    logic axiBusy;
-    logic [2:0] funct3Bufferm;
-    logic [3:0] strobem,strobeBufferm;
+    logic [3:0] strobem;
     loadstoredecoder LSD(aluRsltm,wrtDm,funct3m,wrtDShiftedm,strobem);
 
-    datmem_axi_lite DM(inf,memWrtm,aluRsltm,wrtDShiftedm,strobem,readm,readDPreShiftm,axi_error,axiBusy);
+    always_comb begin
+        read=readm;
+        wrt=memWrtm;
+        wrt_data=wrtDShiftedm;
+        wrt_strb=strobem;
+        mem_ad=aluRsltm;
+        readDPreShiftm=read_data;
+    end
+    //datmem_axi_lite DM(inf,memWrtm,aluRsltm,wrtDShiftedm,strobem,readm,readDPreShiftm,axi_error,axiBusy);
     loadunit LU(funct3m,strobem,readDPreShiftm,readDm);
 
     logic [31:0] aluRsltw,pc4w,ujWrtBckw;
@@ -183,7 +189,7 @@ module top (
 
     logic stallf,stalld,stalle,stallm,flushd,flushe;
 
-    hazardunit HAZARD(ad1d,ad2d,ad1e,ad2e,rde,rdm,rdw,rsltSrce,rsltSrcm,ujMuxe,pcSrc,regWrtm,regWrtw,axiBusy,divBusy,cacheBusy,stallf,stalld,stalle,stallm,flushd,flushe,fwdAe,fwdBe);
+    hazardunit_no_axi HAZARD(ad1d,ad2d,ad1e,ad2e,rde,rdm,rdw,rsltSrce,rsltSrcm,ujMuxe,pcSrc,regWrtm,regWrtw,divBusy,cacheBusy,stallf,stalld,stalle,stallm,flushd,flushe,fwdAe,fwdBe);
 
     logic bt;
     
