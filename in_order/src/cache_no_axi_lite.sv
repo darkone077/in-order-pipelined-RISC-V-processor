@@ -1,13 +1,17 @@
-module cache#(
+module cache_no_axi_lite#(
     parameter INST_BYTES=2**12,
     parameter DATA_BYTES=2**14,
     parameter BLOCK_SIZE=64
 ) (
     axi4_if.MASTER aim,
-    axi4_lite_if.SLAVE ais,
     input logic [31:0] pc,
+    input logic [31:0] mem_ad,
+    input logic read,wrt,
     input logic flush,
+    input logic [3:0] wrt_stb,
     output logic [31:0] inst,
+    output logic [31:0] read_data,
+    input logic [31:0] wrt_data,
     output logic busy
 
 );
@@ -16,9 +20,6 @@ cache_state_t cache_state,cache_state_nxt;
 
 typedef enum logic [2:0] {IDLE_M,WRT_SEND,WRTRESP_RECIEVE,RADDR_SEND,RDATA_RECIEVE} master_state_t;
 master_state_t master_state,master_state_nxt;
-
-typedef enum logic [1:0] {IDLE_S,WRT_RECIEVE,WRTRESP_SEND,RDATA_SEND} slave_state_t;
-slave_state_t slave_state,slave_state_nxt;
 
 //INST CACHE
 localparam INST_OFFSET_SIZE=$clog2(BLOCK_SIZE);
@@ -104,9 +105,11 @@ always_ff @(posedge aim.ACLK) begin
     else begin
         cache_state<=cache_state_nxt;
         /* verilator lint_off CASEINCOMPLETE */
-        
         case(cache_state)
             IDLE_C:begin
+                if (read|wrt) begin
+                    addr<=mem_ad;
+                end
 
                 //INST CACHE 
                 for (int i=0;i<4;i++) begin
@@ -114,13 +117,13 @@ always_ff @(posedge aim.ACLK) begin
                         /* verilator lint_off WIDTHEXPAND */
                         if(pc[(INST_OFFSET_SIZE+INST_INDEX_SIZE)+:INST_TAG_SIZE]==inst_tag[pc[INST_OFFSET_SIZE+:INST_INDEX_SIZE]][i]) begin
                             if(i==inst_track_unpacked[1:0])begin
-                                        inst_lru_track[addr[INST_OFFSET_SIZE+:INST_INDEX_SIZE]]<={inst_track_unpacked[1:0]<inst_track_unpacked[7:6],inst_track_unpacked[5:4],inst_track_unpacked[3:2]};
+                                        inst_lru_track[pc[INST_OFFSET_SIZE+:INST_INDEX_SIZE]]<={inst_track_unpacked[1:0]<inst_track_unpacked[7:6],inst_track_unpacked[5:4],inst_track_unpacked[3:2]};
                                     end
                             else if(i==inst_track_unpacked[3:2])begin
-                                inst_lru_track[addr[INST_OFFSET_SIZE+:INST_INDEX_SIZE]]<={inst_track_unpacked[3:2]<inst_track_unpacked[7:6],inst_track_unpacked[5:4],inst_track_unpacked[1:0]};
+                                inst_lru_track[pc[INST_OFFSET_SIZE+:INST_INDEX_SIZE]]<={inst_track_unpacked[3:2]<inst_track_unpacked[7:6],inst_track_unpacked[5:4],inst_track_unpacked[1:0]};
                             end
                             else if(i==inst_track_unpacked[5:4])begin
-                                inst_lru_track[addr[INST_OFFSET_SIZE+:INST_INDEX_SIZE]]<={inst_track_unpacked[5:4]<inst_track_unpacked[7:6],inst_track_unpacked[3:2],inst_track_unpacked[1:0]};
+                                inst_lru_track[pc[INST_OFFSET_SIZE+:INST_INDEX_SIZE]]<={inst_track_unpacked[5:4]<inst_track_unpacked[7:6],inst_track_unpacked[3:2],inst_track_unpacked[1:0]};
                             end
                             break;
                         end
@@ -168,19 +171,18 @@ always_ff @(posedge aim.ACLK) begin
                 inst_track_unpacked[3:0]<=inst_lru_track[pc[INST_OFFSET_SIZE+:INST_INDEX_SIZE]][3:0];
 
                 //DATA CACHE
-                if (slave_state==WRTRESP_SEND|((slave_state==RDATA_SEND)&ais.RVALID)) begin
-                        
+                if (read|wrt) begin     
                         for (int i=0;i<4;i++) begin
-                            if(data_valid[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i])begin
-                                if(addr[(DATA_OFFSET_SIZE+DATA_INDEX_SIZE)+:DATA_TAG_SIZE]==data_tag[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i]) begin
+                            if(data_valid[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i])begin
+                                if(mem_ad[(DATA_OFFSET_SIZE+DATA_INDEX_SIZE)+:DATA_TAG_SIZE]==data_tag[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i]) begin
                                     if(i==data_track_unpacked[1:0])begin
-                                        data_lru_track[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]]<={data_track_unpacked[1:0]<data_track_unpacked[7:6],data_track_unpacked[5:4],data_track_unpacked[3:2]};
+                                        data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]]<={data_track_unpacked[1:0]<data_track_unpacked[7:6],data_track_unpacked[5:4],data_track_unpacked[3:2]};
                                     end
                                     else if(i==data_track_unpacked[3:2])begin
-                                        data_lru_track[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]]<={data_track_unpacked[3:2]<data_track_unpacked[7:6],data_track_unpacked[5:4],data_track_unpacked[1:0]};
+                                        data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]]<={data_track_unpacked[3:2]<data_track_unpacked[7:6],data_track_unpacked[5:4],data_track_unpacked[1:0]};
                                     end
                                     else if(i==data_track_unpacked[5:4])begin
-                                        data_lru_track[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]]<={data_track_unpacked[5:4]<data_track_unpacked[7:6],data_track_unpacked[3:2],data_track_unpacked[1:0]};
+                                        data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]]<={data_track_unpacked[5:4]<data_track_unpacked[7:6],data_track_unpacked[3:2],data_track_unpacked[1:0]};
                                     end
                                     
                                     break;
@@ -191,14 +193,14 @@ always_ff @(posedge aim.ACLK) begin
                     end
                 
                 for (int i=0;i<4;i++) begin
-                    if(~data_lru_track[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][4])begin
+                    if(~data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][4])begin
                         /* verilator lint_off WIDTHEXPAND */
-                        if((data_lru_track[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][1:0]!=i)&(data_lru_track[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][3:2]!=i))begin
+                        if((data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][1:0]!=i)&(data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][3:2]!=i))begin
                         /* verilator lint_off WIDTHEXPAND */
                             /* verilator lint_off WIDTHTRUNC */
                             data_track_unpacked[5:4]<=i;
                             for (int j=i+1;j<4;j++) begin
-                                if((data_lru_track[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][1:0]!=j)&(data_lru_track[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][3:2]!=j))begin
+                                if((data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][1:0]!=j)&(data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][3:2]!=j))begin
                                     data_track_unpacked[7:6]<=j;
                                     break;
                                 end
@@ -209,10 +211,10 @@ always_ff @(posedge aim.ACLK) begin
 
                     end
                     else begin
-                        if((data_lru_track[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][1:0]!=i)&(data_lru_track[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][3:2]!=i))begin
+                        if((data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][1:0]!=i)&(data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][3:2]!=i))begin
                             data_track_unpacked[7:6]<=i;
                             for (int j=i+1;j<4;j++) begin
-                                if((data_lru_track[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][1:0]!=j)&(data_lru_track[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][3:2]!=j))begin
+                                if((data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][1:0]!=j)&(data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][3:2]!=j))begin
                                     data_track_unpacked[5:4]<=j;
                                     break;
                                 end
@@ -222,7 +224,7 @@ always_ff @(posedge aim.ACLK) begin
                     end
                 end
                 
-                data_track_unpacked[3:0]<=data_lru_track[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][3:0];
+                data_track_unpacked[3:0]<=data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][3:0];
             end
 
             DATA_SAVE:begin
@@ -258,8 +260,8 @@ always_ff @(posedge aim.ACLK) begin
         case (master_state)
             IDLE_M:begin
                 //if (~data_exist) begin
-                    if (ais.AWVALID) addr_buffer<={data_tag[ais.AWADDR[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][data_lru_track[ais.AWADDR[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][1:0]],ais.AWADDR[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE],{DATA_OFFSET_SIZE{1'b0}}};
-                    else if (ais.ARVALID) addr_buffer<={data_tag[ais.ARADDR[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][data_lru_track[ais.ARADDR[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][1:0]],ais.ARADDR[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE],{DATA_OFFSET_SIZE{1'b0}}};
+                    if (wrt) addr_buffer<={data_tag[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][1:0]],mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE],{DATA_OFFSET_SIZE{1'b0}}};
+                    else if (read) addr_buffer<={data_tag[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][1:0]],mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE],{DATA_OFFSET_SIZE{1'b0}}};
                 //end
             end
             WRT_SEND:begin
@@ -298,44 +300,32 @@ end
 
 always_ff @(posedge aim.ACLK) begin
     if (~aim.ARSTN) begin
-        slave_state<=IDLE_S;
         addr<=32'b0;
     end
     else begin
-        slave_state<=slave_state_nxt;
-        case (slave_state)
-            IDLE_S:begin
-                if (ais.AWVALID) addr<=ais.AWADDR;
-                else if (ais.ARVALID) addr<=ais.ARADDR;
-            end
+        if ((cache_state==IDLE_C)&wrt) begin
+            for (int i=0;i<4;i++) begin
+                if(data_valid[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i])begin
 
-            WRT_RECIEVE:begin
-                if (ais.WVALID) begin
-                    for (int i=0;i<4;i++) begin
-                        if(data_valid[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i])begin
-
-                            if(addr[(DATA_OFFSET_SIZE+DATA_INDEX_SIZE)+:DATA_TAG_SIZE]==data_tag[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i]) begin
-                                data_mem[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i][addr[2+:(DATA_OFFSET_SIZE-2)]]<={{ais.WSTRB[3]}?ais.WDATA[31:24]:data_mem[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i][addr[2+:(DATA_OFFSET_SIZE-2)]][31:24],{ais.WSTRB[2]}?ais.WDATA[23:16]:data_mem[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i][addr[2+:(DATA_OFFSET_SIZE-2)]][23:16],{ais.WSTRB[1]}?ais.WDATA[15:8]:data_mem[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i][addr[2+:(DATA_OFFSET_SIZE-2)]][15:8],{ais.WSTRB[0]}?ais.WDATA[7:0]:data_mem[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i][addr[2+:(DATA_OFFSET_SIZE-2)]][7:0]};
-                                data_dirty[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i]<=1'b1;
-                                //data_lru_track[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]]<={i>data_track_unpacked[7:6],}
-                                break;
-                            end
-                        end 
-                    end 
-                end
+                    if(mem_ad[(DATA_OFFSET_SIZE+DATA_INDEX_SIZE)+:DATA_TAG_SIZE]==data_tag[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i]) begin
+                        data_mem[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i][mem_ad[2+:(DATA_OFFSET_SIZE-2)]]<={{wrt_stb[3]}?wrt_data[31:24]:data_mem[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i][mem_ad[2+:(DATA_OFFSET_SIZE-2)]][31:24],{wrt_stb[2]}?wrt_data[23:16]:data_mem[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i][mem_ad[2+:(DATA_OFFSET_SIZE-2)]][23:16],{wrt_stb[1]}?wrt_data[15:8]:data_mem[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i][mem_ad[2+:(DATA_OFFSET_SIZE-2)]][15:8],{wrt_stb[0]}?wrt_data[7:0]:data_mem[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i][mem_ad[2+:(DATA_OFFSET_SIZE-2)]][7:0]};
+                        data_dirty[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i]<=1'b1;
+                        break;
+                    end
+                end 
             end
-        endcase
+        end
     end
-
 end
+
 always_comb begin
     inst_exist=1'b1;
     data=32'b0;
     data_exist=1'b1;
     for (int i=0;i<4;i++) begin
-        if(data_valid[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i])begin
-            if(addr[(DATA_OFFSET_SIZE+DATA_INDEX_SIZE)+:DATA_TAG_SIZE]==data_tag[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i]) begin
-                data=data_mem[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i][addr[2+:(DATA_OFFSET_SIZE-2)]];
+        if(data_valid[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i])begin
+            if(mem_ad[(DATA_OFFSET_SIZE+DATA_INDEX_SIZE)+:DATA_TAG_SIZE]==data_tag[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i]) begin
+                data=data_mem[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i][mem_ad[2+:(DATA_OFFSET_SIZE-2)]];
                 break;
             end
         end
@@ -363,10 +353,10 @@ always_comb begin
                         inst_exist=1'b0;
                     end
                 end
-            if(slave_state==RDATA_SEND|slave_state==WRT_SEND)begin
+            if(wrt|read)begin
                 for (int i=0;i<4;i++) begin
-                    if(data_valid[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i])begin
-                        if(addr[(DATA_OFFSET_SIZE+DATA_INDEX_SIZE)+:DATA_TAG_SIZE]==data_tag[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i]) begin
+                    if(data_valid[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i])begin
+                        if(mem_ad[(DATA_OFFSET_SIZE+DATA_INDEX_SIZE)+:DATA_TAG_SIZE]==data_tag[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i]) begin
                             data_exist=1'b1; 
                             break;
                         end
@@ -388,7 +378,7 @@ always_comb begin
                 cache_state_nxt=INST_LOAD;
             end
             else if (~data_exist) begin
-                if (data_dirty[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][data_lru_track[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][1:0]]) begin
+                if (data_dirty[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][1:0]]) begin
                     cache_state_nxt=DATA_SAVE;
                 end
                 else begin
@@ -422,7 +412,7 @@ always_comb begin
         end
 
         INST_LOAD:begin
-            if(slave_state==RDATA_SEND|slave_state==WRT_RECIEVE)begin
+            if(wrt|read)begin
                 for (int i=0;i<4;i++) begin
                     if(data_valid[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i])begin
                         if(addr[(DATA_OFFSET_SIZE+DATA_INDEX_SIZE)+:DATA_TAG_SIZE]==data_tag[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][i]) begin
@@ -463,7 +453,7 @@ end
 
 always_comb begin
     aim.AWVALID=1'b0;
-    aim.AWADDR={data_tag[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][data_track_unpacked[1:0]],addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE],{DATA_OFFSET_SIZE{1'b0}}};
+    aim.AWADDR={data_tag[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][data_track_unpacked[1:0]],mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE],{DATA_OFFSET_SIZE{1'b0}}};
     aim.AWID=4'b0000;
     aim.AWLEN=BLOCK_SIZE/4-1;
     aim.AWSIZE=3'b010;
@@ -502,7 +492,7 @@ always_comb begin
                 end
                 else if(~data_exist)begin
                     busy=1'b1;
-                    if (data_dirty[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][data_lru_track[addr[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][1:0]]) begin
+                    if (data_dirty[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][1:0]]) begin
                         master_state_nxt=WRT_SEND;
                     end
                     else begin
@@ -554,7 +544,7 @@ always_comb begin
                 aim.ARADDR={pc[31:INST_OFFSET_SIZE],{INST_OFFSET_SIZE{1'b0}}};
             end
             else if (cache_state==DATA_LOAD) begin
-               aim.ARADDR={addr[31:DATA_OFFSET_SIZE],{DATA_OFFSET_SIZE{1'b0}}};
+               aim.ARADDR={mem_ad[31:DATA_OFFSET_SIZE],{DATA_OFFSET_SIZE{1'b0}}};
             end
             aim.ARLOCK=1'b1;
 
@@ -602,63 +592,11 @@ always_comb begin
 end
 
 always_comb begin
-    ais.AWREADY=1'b1;
-
-    ais.WREADY=1'b0;
-    
-    ais.BRESP=2'b00;
-    ais.BVALID=1'b0;
-    
-    ais.ARREADY=1'b1;
-    
-    ais.RDATA=32'bx;
-    ais.RRESP=2'b00;
-    ais.RVALID=1'b0;
-
-    case (slave_state)
-        IDLE_S:begin
-            if (ais.AWVALID) begin
-                slave_state_nxt=WRT_RECIEVE;
-            end
-            else if (ais.ARVALID) begin
-                slave_state_nxt=RDATA_SEND;
-            end
-            else begin
-                slave_state_nxt=IDLE_S;
-            end
-        end
-
-        WRT_RECIEVE:begin
-            ais.WREADY=data_exist;
-            ais.AWREADY=1'b0;
-            ais.ARREADY=1'b0;
-            
-            if (ais.WREADY&ais.WVALID) begin
-                slave_state_nxt=WRTRESP_SEND;
-            end
-            else begin
-                slave_state_nxt=WRT_RECIEVE;
-            end
-            
-        end
-
-        WRTRESP_SEND:begin
-            ais.AWREADY=1'b0;
-            ais.ARREADY=1'b0;
-            ais.BVALID=1'b1;
-            
-            slave_state_nxt=IDLE_S;
-        end
-
-        RDATA_SEND:begin
-            ais.AWREADY=1'b0;
-            ais.ARREADY=1'b0;
-            ais.RVALID=data_exist;
-            ais.RDATA=data;
-            
-            if(ais.RVALID) slave_state_nxt=IDLE_S;
-            else slave_state_nxt=RDATA_SEND;
-        end
-    endcase
+    if (read) begin
+        read_data=data;
+    end
+    else begin
+        read_data=32'b0;
+    end
 end
 endmodule
