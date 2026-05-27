@@ -77,33 +77,54 @@ module top_no_axi (
 
     deex DE(clk,flushe,stalle,regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd,div_end,rsltSrcd,immSrcd,ujMuxd,aluCtrld,funct3d,divCtrld,regWrte,memWrte,jmpe,brnche,aluSrce,reade,div_ene,rsltSrce,immSrce,ujMuxe,aluCtrle,funct3e,divCtrle,rd1d,rd2d,pcd,pc4d,immextd,ad1d,ad2d,rdd,rd1e,rd2e,pce,pc4e,immexte,ad1e,ad2e,rde);
 
-    logic [31:0] srcAe,srcBe,wrtDe;
+    logic [31:0] srcAe,srcBe,wrtDe,srcAe_buffer,wrtDe_buffer,srcAe_pre,wrtDe_pre;
     logic [1:0] fwdAe,fwdBe;
+    logic cacheBusy_buffer;
 
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            srcAe_buffer<=32'b0;
+            wrtDe_buffer<=32'b0;
+            cacheBusy_buffer<=1'b0;
+        end
+        else begin
+            cacheBusy_buffer<=cacheBusy;
+            if (~cacheBusy_buffer) begin
+                srcAe_buffer<=srcAe_pre;
+            end
+            if (~cacheBusy_buffer) begin
+                wrtDe_buffer<=wrtDe_pre;
+            end
+        end
+    end
     always_comb begin
         case(fwdAe)
             2'b00:
-                srcAe=rd1e;
+                srcAe_pre=rd1e;
             2'b01:
-                srcAe=rsltw;
+                srcAe_pre=rsltw;
             2'b10:
-                srcAe=aluRsltm;
+                srcAe_pre=aluRsltm;
             2'b11:
-                srcAe=ujWrtBckm;
+                srcAe_pre=ujWrtBckm;
         endcase
+
+        srcAe=cacheBusy_buffer?srcAe_buffer:srcAe_pre;
     end
 
     always_comb begin
         case(fwdBe)
             2'b00:
-                wrtDe=rd2e;
+                wrtDe_pre=rd2e;
             2'b01:
-                wrtDe=rsltw;
+                wrtDe_pre=rsltw;
             2'b10:
-                wrtDe=aluRsltm;
-            default:
-                wrtDe=32'bx;
+                wrtDe_pre=aluRsltm;
+            2'b11:
+                wrtDe_pre=ujWrtBckm;
         endcase
+
+        wrtDe=cacheBusy_buffer?wrtDe_buffer:wrtDe_pre;
     end
 
     always_comb begin
@@ -134,7 +155,7 @@ module top_no_axi (
             2'b01:
                 ujWrtBcke=immexte+pce;
             2'b10:
-                ujWrtBcke=immexte+srcAe;
+                ujWrtBcke=(immexte+srcAe)&~{31'b0,1'b1};
             default:
                 ujWrtBcke=32'bxx;
         endcase
@@ -212,6 +233,6 @@ module top_no_axi (
         endcase
     end
 
-    assign pcSrc=jmpe|bt;
+    assign pcSrc=(jmpe|bt)&(pcj[1:0]==2'b00);
     
 endmodule

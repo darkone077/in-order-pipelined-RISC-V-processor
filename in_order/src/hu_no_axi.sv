@@ -15,7 +15,8 @@ module hazardunit_no_axi (
         else if((rdw==rs1e)&&(regWrtw|(ujMuxe==2'b10))&&rs1e!=0) fwdAe=2'b01;
         else fwdAe=2'b00;
 
-        if((rdm==rs2e)&&(regWrtm)&&rs2e!=0) fwdBe=2'b10;
+        if((rdm==rs2e)&&(regWrtm)&&rs2e!=0&&(rsltSrcm==2'b11)) fwdBe=2'b11;
+        else if((rdm==rs2e)&&(regWrtm)&&rs2e!=0) fwdBe=2'b10;
         else if((rdw==rs2e)&&(regWrtw)&&rs2e!=0) fwdBe=2'b01;
         else fwdBe=2'b00;
 

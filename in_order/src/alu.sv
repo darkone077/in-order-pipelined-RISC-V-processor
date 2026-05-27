@@ -46,7 +46,7 @@ module alu #(
             SLT:
                 aluout={31'b0,$signed(src1)<$signed(src2)};
             SRA:
-                aluout=$signed(src1)>>src2[4:0];
+                aluout=$signed(src1)>>>src2[4:0];
             SLTU:
                 aluout={31'b0,src1<src2};
             MUL:
