@@ -56,6 +56,9 @@ always_ff @(posedge clk) begin
                     if(~divCtrl[1]) divOut<=32'hffffffff;
                     else divOut<=src1;
                 end
+                else if (src1Zero) begin
+                    divOut<=32'b0;
+                end
             end
             DIV:begin
                 if (N==0) begin
