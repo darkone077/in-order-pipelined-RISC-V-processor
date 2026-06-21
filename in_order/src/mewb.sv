@@ -5,15 +5,17 @@ module mewb (
 
     //control path
     input logic regWrtm,memWrtm,
-    input logic [1:0] rsltSrcm,
+    input logic [2:0] rsltSrcm,
     output logic regWrtw,memWrtw,
-    output logic [1:0] rsltSrcw,
+    output logic [2:0] rsltSrcw,
 
     //datapath
     input logic [31:0] readDm,pc4m,ujWrtBckm,aluRsltm,
     input logic [4:0] rdm,
+    input logic [31:0] csrm,
     output logic [31:0] readDw,pc4w,ujWrtBckw,aluRsltw,
-    output logic [4:0] rdw
+    output logic [4:0] rdw,
+    output logic [31:0] csrw
 
 );
 
@@ -27,6 +29,7 @@ module mewb (
         rdw<=rdm;
         ujWrtBckw<=ujWrtBckm;
         aluRsltw<=aluRsltm;
+        csrw<=csrm;
         
     end
     

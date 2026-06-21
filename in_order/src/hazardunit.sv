@@ -2,7 +2,8 @@
 
 module hazardunit (
     input logic[4:0] rs1d,rs2d,rs1e,rs2e,rde,rdm,rdw,
-    input logic [1:0] rsltSrce,rsltSrcm,ujMuxe,
+    input logic [2:0] rsltSrce,rsltSrcm,
+    input logic irq,
     input logic pcSrce,regWrtm,regWrtw,axiBusy,divBusy,cacheBusy,
     output logic stallf,stalld,stalle,stallm,flushd,flushe,
     output logic [1:0] fwdAe,fwdBe
@@ -10,23 +11,24 @@ module hazardunit (
     logic lwstall,wrtreadstall;
     always_comb begin
 
-        if((rdm==rs1e)&&(regWrtm)&&rs1e!=0&&(rsltSrcm==2'b11)) fwdAe=2'b11;
-        else if((rdm==rs1e)&&(regWrtm|(ujMuxe==2'b10))&&rs1e!=0) fwdAe=2'b10;
-        else if((rdw==rs1e)&&(regWrtw|(ujMuxe==2'b10))&&rs1e!=0) fwdAe=2'b01;
+        if((rdm==rs1e)&&(regWrtm)&&rs1e!=0&&(rsltSrcm==3'b011)) fwdAe=2'b11;
+        else if((rdm==rs1e)&&(regWrtm)&&rs1e!=0) fwdAe=2'b10;
+        else if((rdw==rs1e)&&(regWrtw)&&rs1e!=0) fwdAe=2'b01;
         else fwdAe=2'b00;
 
-        if((rdm==rs2e)&&(regWrtm)&&rs2e!=0) fwdBe=2'b10;
+        if((rdm==rs2e)&&(regWrtm)&&rs2e!=0&&(rsltSrcm==3'b011)) fwdBe=2'b11;
+        else if((rdm==rs2e)&&(regWrtm)&&rs2e!=0) fwdBe=2'b10;
         else if((rdw==rs2e)&&(regWrtw)&&rs2e!=0) fwdBe=2'b01;
         else fwdBe=2'b00;
 
-        lwstall=(rsltSrce==2'b01)&&((rde==rs1d)||(rde==rs2d));
+        lwstall=(rsltSrce==3'b001)&&((rde==rs1d)||(rde==rs2d));
         wrtreadstall=axiBusy;
         stalld=lwstall|wrtreadstall|divBusy|cacheBusy;
         stallf=lwstall|wrtreadstall|divBusy|cacheBusy;
         stalle=wrtreadstall|divBusy|cacheBusy;
         stallm=wrtreadstall|cacheBusy;
-        flushe=(lwstall|pcSrce)&(!axiBusy)&!cacheBusy;
-        flushd=pcSrce;
+        flushe=(lwstall|pcSrce|irq)&~wrtreadstall&~cacheBusy;
+        flushd=pcSrce|irq;
     end
     
 endmodule

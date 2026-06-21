@@ -9,14 +9,16 @@ module ctrl#(
     parameter jType=7'b1101111,
     parameter jTypeJALR=7'b1100111,
     parameter uTypeLUI=7'b0110111,
-    parameter uTypeAUIPC=7'b0010111
+    parameter uTypeAUIPC=7'b0010111,
+    parameter CSRType=7'b1110011 
 ) (
     input logic [6:0] op,
     input logic [2:0] funct3,
     input logic  [6:0] funct7,
-    output logic regWrt,memWrt,jmp,brnch,aluSrc,read,div_en,
-    output logic [1:0] rsltSrc,ujMux,
-    output logic [2:0] immSrc,
+    input logic [4:0] rs1,
+    output logic regWrt,memWrt,jmp,brnch,aluSrc,read,div_en,csr_wrt_en,csr_imm,
+    output logic [1:0] ujMux,csr_src,
+    output logic [2:0] immSrc,rsltSrc,
     output logic [1:0] divCtrl,
     output logic [4:0] aluCtrl
 );
@@ -24,6 +26,9 @@ module ctrl#(
 
     /* verilator lint_off LATCH */
     always_comb begin 
+        csr_wrt_en=1'b0;
+        csr_imm=1'b0;
+        csr_src=2'b00;
         case(op)
             
             iLoadType:begin
@@ -33,7 +38,7 @@ module ctrl#(
                 jmp=1'b0;
                 brnch=1'b0;
                 aluSrc=1'b1;
-                rsltSrc=2'b01;
+                rsltSrc=3'b001;
                 aluCtrl=5'b00000;
                 ujMux=2'bxx;
                 read=1'b1;
@@ -48,7 +53,7 @@ module ctrl#(
                 jmp=1'b0;
                 brnch=1'b0;
                 aluSrc=1'b1;
-                rsltSrc=2'b00;
+                rsltSrc=3'b000;
                 ujMux=2'bxx;
                 read=1'b0;
                 divCtrl=2'bxx;
@@ -82,7 +87,7 @@ module ctrl#(
                 jmp=1'b0;
                 brnch=1'b0;
                 aluSrc=1'b0;
-                rsltSrc=2'b00;
+                rsltSrc=3'b000;
                 ujMux=2'bxx;
                 read=1'b0;
 
@@ -130,7 +135,7 @@ module ctrl#(
                 jmp=1'b0;
                 brnch=1'b0;
                 aluSrc=1'b1;
-                rsltSrc=2'bxx;
+                rsltSrc=3'b0xx;
                 aluCtrl=5'b00000;
                 ujMux=2'bxx;
                 read=1'b0;
@@ -145,7 +150,7 @@ module ctrl#(
                 jmp=1'b0;
                 brnch=1'b1;
                 aluSrc=1'b0;
-                rsltSrc=2'bxx;
+                rsltSrc=3'b0xx;
                 ujMux=2'b01;
                 read=1'b0;
                 divCtrl=2'bxx;
@@ -170,7 +175,7 @@ module ctrl#(
                 jmp=1'b0;
                 brnch=1'b0;
                 aluSrc=1'bx;
-                rsltSrc=2'b11;
+                rsltSrc=3'b011;
                 aluCtrl=5'b0xxxx;
                 read=1'b0;
                 divCtrl=2'bxx;
@@ -195,10 +200,50 @@ module ctrl#(
                 jmp=1'b1;
                 brnch=1'b0;
                 aluSrc=1'bx;
-                rsltSrc=2'b10;
+                rsltSrc=3'b010;
                 aluCtrl=5'b0xxxx;
                 divCtrl=2'bxx;
                 div_en=1'b0;
+            end
+
+            CSRType:begin
+                memWrt=1'b0;
+                divCtrl=2'bxx;
+                div_en=1'b0;
+                brnch=1'b0;
+                read=1'b0;
+                ujMux=2'bxx;
+                rsltSrc=3'b100;
+                immSrc=3'bxxx;
+                aluSrc=1'b0;
+                aluCtrl=5'b00000;
+                case (funct3)
+                    3'b001,3'b101:begin//csrrw(i)
+                        csr_wrt_en=1'b1;
+                        csr_src=2'b00;
+                        regWrt=1'b1;
+                        csr_imm=funct3[2];
+                    end
+                    3'b010,3'b110:begin//csrrs(i)
+                        csr_wrt_en=(rs1!=5'b0);
+                        csr_src=2'b01;
+                        regWrt=1'b1;
+                        csr_imm=funct3[2];
+                    end
+                    3'b011,3'b111:begin//csrrc(i)
+                        csr_wrt_en=(rs1!=5'b0);
+                        regWrt=1'b1;
+                        csr_src=2'b10;
+                        csr_imm=funct3[2];
+                    end
+                    
+                    default:begin
+                        csr_wrt_en=1'b0;
+                        csr_src=2'bxx;
+                        regWrt=1'b0;
+                        csr_imm=1'b0;
+                    end
+                endcase
             end
 
             default:begin
@@ -208,7 +253,7 @@ module ctrl#(
                 jmp=1'b0;
                 brnch=1'b0;
                 aluSrc=1'bx;
-                rsltSrc=2'bxx;
+                rsltSrc=3'b0xx;
                 aluCtrl=5'b0xxxx;
                 ujMux=2'bxx; 
                 read=1'b0; 
