@@ -29,5 +29,5 @@ if __name__=="__main__":
     tb_runner('loadunit')
     tb_runner('clint_wrapper')
     tb_runner('datram_wrapper')
-    tb_runner('cache_wrapper')
+    tb_runner('cache_io_wrapper')
     tb_runner('ram_wrapper')
