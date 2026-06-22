@@ -236,7 +236,8 @@ module top_no_axi (
         endcase
     end
 
-    csr CSR(clk,~rst,csr_addrm,csr_wrt_enm,csr_val,csrm,timerIrq,swIrq,1'b0,illegal_inst,ebreak,1'b0,1'b0,ecall,pc4d,exception_pc,cacheBusy|axiBusy,divBusy,16'b0,1'b0,trap,mret);
+    logic inst_addr_misaligned;
+    csr CSR(clk,~rst,csr_addrm,csr_wrt_enm,csr_val,csrm,timerIrq,swIrq,inst_addr_misaligned,illegal_inst,ebreak,1'b0,1'b0,ecall,pc4d,exception_pc,cacheBusy|axiBusy,divBusy,16'b0,1'b0,trap,mret);
 
     mewb MW(clk,regWrtm,memWrtm,rsltSrcm,regWrtw,memWrtw,rsltSrcw,readDm,pc4m,ujWrtBckm,aluRsltm,rdm,csrm,readDw,pc4w,ujWrtBckw,aluRsltw,rdw,csrw);
 
@@ -259,9 +260,11 @@ module top_no_axi (
 
     logic stallf,stalld,stalle,stallm,flushd,flushe;
 
-    logic irq;
+    logic irq,de_exception,ex_exception;
     assign irq=swIrq|timerIrq;
-    hazardunit HAZARD(ad1d,ad2d,ad1e,ad2e,rde,rdm,rdw,rsltSrce,rsltSrcm,irq,pcSrc,regWrtm,regWrtw,axiBusy,divBusy,cacheBusy,stallf,stalld,stalle,stallm,flushd,flushe,fwdAe,fwdBe);
+    assign de_exception=illegal_inst|ebreak|ecall|mret;
+    assign ex_exception=inst_addr_misaligned;
+    hazardunit HAZARD(ad1d,ad2d,ad1e,ad2e,rde,rdm,rdw,rsltSrce,rsltSrcm,irq,de_exception,ex_exception,pcSrc,regWrtm,regWrtw,axiBusy,divBusy,cacheBusy,stallf,stalld,stalle,stallm,flushd,flushe,fwdAe,fwdBe);
 
     logic bt;
     
@@ -285,5 +288,6 @@ module top_no_axi (
     end
 
     assign pcSrc=(jmpe|bt)&(pcj[1:0]==2'b00);
+    assign inst_addr_misaligned=(jmpe|bt)&(pcj[1:0]!=2'b00);
     
 endmodule

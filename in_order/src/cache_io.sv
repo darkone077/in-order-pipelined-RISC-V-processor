@@ -713,6 +713,6 @@ always_comb begin
 end
 
 always_comb begin
-    read_data=(addr>=MMIO_START&addr<=MMIO_END)?read_io:read_mem;
+    read_data=(mem_ad>=MMIO_START&mem_ad<=MMIO_END)?read_io:read_mem;
 end
 endmodule

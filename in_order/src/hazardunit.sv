@@ -3,7 +3,7 @@
 module hazardunit (
     input logic[4:0] rs1d,rs2d,rs1e,rs2e,rde,rdm,rdw,
     input logic [2:0] rsltSrce,rsltSrcm,
-    input logic irq,
+    input logic irq,de_exception,ex_exception,
     input logic pcSrce,regWrtm,regWrtw,axiBusy,divBusy,cacheBusy,
     output logic stallf,stalld,stalle,stallm,flushd,flushe,
     output logic [1:0] fwdAe,fwdBe
@@ -27,8 +27,8 @@ module hazardunit (
         stallf=lwstall|wrtreadstall|divBusy|cacheBusy;
         stalle=wrtreadstall|divBusy|cacheBusy;
         stallm=wrtreadstall|cacheBusy;
-        flushe=(lwstall|pcSrce|irq)&~wrtreadstall&~cacheBusy;
-        flushd=pcSrce|irq;
+        flushe=(lwstall|pcSrce|irq|ex_exception)&~wrtreadstall&~cacheBusy;
+        flushd=pcSrce|irq|de_exception|ex_exception;
     end
     
 endmodule
