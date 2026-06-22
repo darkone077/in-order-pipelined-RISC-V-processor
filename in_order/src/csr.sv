@@ -11,8 +11,8 @@ module csr#(
     parameter EXTERNAL_INT=31'd11 
 
 )(
-    input clk,
-    input rst_n,
+    input logic clk,
+    input logic rst_n,
     //[11:10]:00-10=read/wrt,11=read,[9:8]:00=unpriv/user,01=supervisor,10=hypervisor,11=machine
     input logic [11:0] csr_addr,
     input logic csr_wrt_en,
@@ -34,7 +34,7 @@ module csr#(
     input logic [31:0] current_pc,
     output logic [31:0] exception_pc,
 
-    input logic busy,
+    input logic busy,div_busy,
     input logic [15:0] irq,
     input logic external_irq,
     output logic trap,
@@ -59,7 +59,8 @@ module csr#(
         logic [63:0] menvcfg;
     } csr_m;
 
-    
+    logic sync_exception;
+
     always_ff @(posedge clk) begin
         if (~rst_n) begin
             //machine mode specifc CSRs
@@ -101,47 +102,47 @@ module csr#(
                 end
                 /* verilator lint_on WIDTHTRUNC */
             end
-            else if (breakpoint&~busy) begin
+            else if (breakpoint&~(busy|div_busy)) begin
                 csr_m.mepc<=current_pc;
                 csr_m.mcause<={1'b0,BREAKPOINT};
                 csr_m.mstatus[7]<=csr_m.mstatus[3];
                 csr_m.mstatus[3]<=1'b0;
             end
-            else if (illegal_inst&~busy) begin
+            else if (illegal_inst&~(busy|div_busy)) begin
                 csr_m.mepc<=current_pc;
                 csr_m.mcause<={1'b0,ILLEGAL_INST};
                 csr_m.mstatus[7]<=csr_m.mstatus[3];
                 csr_m.mstatus[3]<=1'b0; 
             end
-            else if (inst_addr_misaligned&~busy) begin
+            else if (inst_addr_misaligned&~(busy|div_busy)) begin
                 csr_m.mepc<=current_pc;
                 csr_m.mcause<={1'b0,INST_ADDR_MISALIGN};
                 csr_m.mstatus[7]<=csr_m.mstatus[3];
                 csr_m.mstatus[3]<=1'b0;
             end
-            else if (m_ecall&~busy) begin
+            else if (m_ecall&~(busy|div_busy)) begin
                 csr_m.mepc<=current_pc;
                 csr_m.mcause<={1'b0,M_ECALL};
                 csr_m.mstatus[7]<=csr_m.mstatus[3];
                 csr_m.mstatus[3]<=1'b0;
             end
-            else if (load_addr_misaligned&~busy) begin
+            else if (load_addr_misaligned&~(busy|div_busy)) begin
                 csr_m.mepc<=current_pc;
                 csr_m.mcause<={1'b0,LOAD_ADDR_MISALIGNED};
                 csr_m.mstatus[7]<=csr_m.mstatus[3];
                 csr_m.mstatus[3]<=1'b0;
             end
-            else if (str_addr_misaligned&~busy) begin
+            else if (str_addr_misaligned&~(busy|div_busy)) begin
                 csr_m.mepc<=current_pc;
                 csr_m.mcause<={1'b0,STR_ADDR_MISALIGNED};
                 csr_m.mstatus[7]<=csr_m.mstatus[3];
                 csr_m.mstatus[3]<=1'b0;
             end
-            else if (mret&~busy) begin
+            else if (mret&~(busy|div_busy)) begin
                 csr_m.mstatus[3]<=csr_m.mstatus[7];
                 csr_m.mstatus[7]<=1'b1;
             end
-            else if(csr_wrt_en)begin
+            else if(csr_wrt_en&~busy)begin
                 case (csr_addr)
                 //machine mode CSRs
                     12'h300:
@@ -181,8 +182,10 @@ module csr#(
 
     always_comb begin
         exception_pc=32'b0;
+        sync_exception=breakpoint|illegal_inst|inst_addr_misaligned|m_ecall|load_addr_misaligned|str_addr_misaligned;
+
         csr_m.mip={irq,2'b00,1'b0,1'b0,external_irq,1'b0,1'b0,1'b0,mclint_timer_int,1'b0,1'b0,1'b0,mclint_sw_int,1'b0,1'b0,1'b0};
-        if (~busy&(mret|(csr_m.mip!=32'b0&csr_m.mstatus[3])|breakpoint|illegal_inst|inst_addr_misaligned|m_ecall|load_addr_misaligned|str_addr_misaligned)) begin
+        if (~busy&(csr_m.mip!=32'b0&csr_m.mstatus[3])|(mret|sync_exception)&~(busy|div_busy)) begin
             trap=1;
         end
         else begin
@@ -217,22 +220,7 @@ module csr#(
             end
             /* verilator lint_on WIDTHTRUNC */
         end
-        else if (breakpoint&~busy) begin
-            exception_pc={csr_m.mtvec[31:2],2'b00}; 
-        end
-        else if (illegal_inst&~busy) begin
-            exception_pc={csr_m.mtvec[31:2],2'b00}; 
-        end
-        else if (inst_addr_misaligned&~busy) begin
-            exception_pc={csr_m.mtvec[31:2],2'b00}; 
-        end
-        else if (m_ecall&~busy) begin
-            exception_pc={csr_m.mtvec[31:2],2'b00}; 
-        end
-        else if (load_addr_misaligned&~busy) begin
-            exception_pc={csr_m.mtvec[31:2],2'b00}; 
-        end
-        else if (str_addr_misaligned&~busy) begin
+        else if (sync_exception&~(busy|div_busy)) begin
             exception_pc={csr_m.mtvec[31:2],2'b00}; 
         end
         else if (mret&~busy) begin

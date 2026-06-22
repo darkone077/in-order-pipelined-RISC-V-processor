@@ -44,12 +44,8 @@ module top_no_axi (
     //instmem IM(pcf,instf);
     fede FD(clk,flushd|rst,stalld,instf,pc4f,pcf,instd,pc4d,pcd);
 
-    logic [6:0] op;
-    logic [2:0] funct3,funct3e,funct3d;
-    logic [6:0] funct7;
-    assign op=instd[6:0];
+    logic [2:0] funct3e,funct3d;
     assign funct3d=instd[14:12];
-    assign funct7=instd[31:25];
     logic regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd,div_end;
     logic [1:0] ujMuxd,divCtrld;
     logic [2:0] rsltSrcd,immSrcd;
@@ -63,8 +59,9 @@ module top_no_axi (
     logic [4:0] aluCtrle;
     logic [1:0]csr_srce;
     logic csr_wrt_ene,csr_imme;
+    logic ecall,ebreak,mret,illegal_inst;
 
-    ctrl Control(op,funct3d,funct7,ad1d,regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd,div_end,csr_wrt_end,csr_immd,ujMuxd,csr_srcd,immSrcd,rsltSrcd,divCtrld,aluCtrld);
+    ctrl Control(instd,pcSrc,regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd,div_end,csr_wrt_end,csr_immd,ebreak,ecall,mret,illegal_inst,ujMuxd,csr_srcd,immSrcd,rsltSrcd,divCtrld,aluCtrld);
     
     logic [4:0] ad1d,ad2d,rdd;
     assign ad1d=instd[19:15];
@@ -239,7 +236,7 @@ module top_no_axi (
         endcase
     end
 
-    csr CSR(clk,~rst,csr_addrm,csr_wrt_enm,csr_val,csrm,timerIrq,swIrq,1'b0,1'b0,1'b0,1'b0,1'b0,1'b0,pc4d,exception_pc,cacheBusy|axiBusy,16'b0,1'b0,trap,1'b0);
+    csr CSR(clk,~rst,csr_addrm,csr_wrt_enm,csr_val,csrm,timerIrq,swIrq,1'b0,illegal_inst,ebreak,1'b0,1'b0,ecall,pc4d,exception_pc,cacheBusy|axiBusy,divBusy,16'b0,1'b0,trap,mret);
 
     mewb MW(clk,regWrtm,memWrtm,rsltSrcm,regWrtw,memWrtw,rsltSrcw,readDm,pc4m,ujWrtBckm,aluRsltm,rdm,csrm,readDw,pc4w,ujWrtBckw,aluRsltw,rdw,csrw);
 

@@ -10,259 +10,329 @@ module ctrl#(
     parameter jTypeJALR=7'b1100111,
     parameter uTypeLUI=7'b0110111,
     parameter uTypeAUIPC=7'b0010111,
-    parameter CSRType=7'b1110011 
+    parameter CSRType=7'b1110011,
+    parameter ECALL=32'h00000073,
+    parameter EBREAK=32'h00100073,
+    parameter MRET=32'h30200073
 ) (
-    input logic [6:0] op,
-    input logic [2:0] funct3,
-    input logic  [6:0] funct7,
-    input logic [4:0] rs1,
-    output logic regWrt,memWrt,jmp,brnch,aluSrc,read,div_en,csr_wrt_en,csr_imm,
+    input logic [31:0] inst,
+    input logic pcSrc,
+    output logic regWrt,memWrt,jmp,brnch,aluSrc,read,div_en,csr_wrt_en,csr_imm,ebreak,ecall,mret,illegal_inst,
     output logic [1:0] ujMux,csr_src,
     output logic [2:0] immSrc,rsltSrc,
     output logic [1:0] divCtrl,
     output logic [4:0] aluCtrl
 );
 
+    logic [6:0] op;
+    logic [2:0] funct3;
+    logic [6:0] funct7;
+    logic [4:0] rs1;
+
+
+    assign op=inst[6:0];
+    assign funct3=inst[14:12];
+    assign funct7=inst[31:25];
+    assign rs1=inst[19:15]; 
+    
 
     /* verilator lint_off LATCH */
     always_comb begin 
         csr_wrt_en=1'b0;
         csr_imm=1'b0;
         csr_src=2'b00;
-        case(op)
+        ecall=1'b0;
+        ebreak=1'b0;
+        mret=1'b0;
+        illegal_inst=1'b0;
+
+        if (inst==ECALL) begin
+            ecall=1'b1;
+
+            regWrt=1'b0;
+            memWrt=1'b0;
+            immSrc=3'b000;
+            jmp=1'b0;
+            brnch=1'b0;
+            aluSrc=1'b0;
+            rsltSrc=3'b000;
+            aluCtrl=5'b00000;
+            ujMux=2'bxx;
+            read=1'b0;
+            divCtrl=2'bxx;
+            div_en=1'b0;
+        end
+
+        else if (inst==EBREAK) begin
+            ebreak=1'b1;
             
-            iLoadType:begin
-                regWrt=1'b1;
-                memWrt=1'b0;
-                immSrc=3'b000;
-                jmp=1'b0;
-                brnch=1'b0;
-                aluSrc=1'b1;
-                rsltSrc=3'b001;
-                aluCtrl=5'b00000;
-                ujMux=2'bxx;
-                read=1'b1;
-                divCtrl=2'bxx;
-                div_en=1'b0;
-            end
+            regWrt=1'b0;
+            memWrt=1'b0;
+            immSrc=3'b000;
+            jmp=1'b0;
+            brnch=1'b0;
+            aluSrc=1'b0;
+            rsltSrc=3'b000;
+            aluCtrl=5'b00000;
+            ujMux=2'bxx;
+            read=1'b0;
+            divCtrl=2'bxx;
+            div_en=1'b0;
+        end
 
-            iALUType:begin
-                regWrt=1'b1;
-                memWrt=1'b0;
-                immSrc=3'b000;
-                jmp=1'b0;
-                brnch=1'b0;
-                aluSrc=1'b1;
-                rsltSrc=3'b000;
-                ujMux=2'bxx;
-                read=1'b0;
-                divCtrl=2'bxx;
-                div_en=1'b0;
-                case(funct3)
-                    3'b000: //addi
-                        aluCtrl=5'b00000;
-                    3'b001: //slli
-                        aluCtrl=5'b00101;
-                    3'b010: //slti
-                        aluCtrl=5'b00111;
-                    3'b011: //sltiu
-                        aluCtrl=5'b01001;
-                    3'b100: //xori
-                        aluCtrl=5'b00100;
-                    3'b101: //srai and srli
-                        if(funct7[5]) aluCtrl=5'b01000;
-                        else aluCtrl=5'b00110;
-                        
-                    3'b110: //ori
-                        aluCtrl=5'b00011;
-                    3'b111: //andi
-                        aluCtrl=5'b00010;
-                endcase
-            end
-
-            rType:begin
-                regWrt=1'b1;
-                memWrt=1'b0;
-                immSrc=3'bxxx;
-                jmp=1'b0;
-                brnch=1'b0;
-                aluSrc=1'b0;
-                rsltSrc=3'b000;
-                ujMux=2'bxx;
-                read=1'b0;
-
-                if (funct7[0]&funct3[2]) begin
-                    div_en=1'b1;
-                    aluCtrl=5'b00000;
-                end
-                else div_en=1'b0;
-
-                case(funct3)
-                    3'b000: //mul, add, sub
-                        if(funct7[0]) aluCtrl=5'b01010;
-                        else if(~funct7[5]) aluCtrl=5'b00000;
-                        else aluCtrl=5'b00001;
-                    3'b001: //mulh, sll
-                        if(funct7[0]) aluCtrl=5'b01011;
-                        else aluCtrl=5'b00101;
-                    3'b010: //mulhsu, slt
-                        if(funct7[0]) aluCtrl=5'b01101;
-                        else aluCtrl=5'b00111;
-                    3'b011: //mulu, sltu
-                        if(funct7[0]) aluCtrl=5'b01100;
-                        else aluCtrl=5'b01001;
-                    3'b100: //div, xor
-                        if(funct7[0]) divCtrl=2'b00;
-                        else aluCtrl=5'b00100;
-                    3'b101: //divu, sra, srl
-                        if(funct7[0]) divCtrl=2'b01;
-                        else if(funct7[5]) aluCtrl=5'b01000;
-                        else aluCtrl=5'b00110;
-                    3'b110: //rem, or
-                        if(funct7[0]) divCtrl=2'b10;
-                        else aluCtrl=5'b00011;
-                    3'b111: //remu, and
-                        if(funct7[0]) divCtrl=2'b11;
-                        else aluCtrl=5'b00010;
-                        
-                endcase
-            end
-
-            sType:begin 
-                regWrt=1'b0;
-                memWrt=1'b1;
-                immSrc=3'b001;
-                jmp=1'b0;
-                brnch=1'b0;
-                aluSrc=1'b1;
-                rsltSrc=3'b0xx;
-                aluCtrl=5'b00000;
-                ujMux=2'bxx;
-                read=1'b0;
-                divCtrl=2'bxx;
-                div_en=1'b0;
-            end
-
-            bType:begin 
-                regWrt=1'b0;
-                memWrt=1'b0;
-                immSrc=3'b010;
-                jmp=1'b0;
-                brnch=1'b1;
-                aluSrc=1'b0;
-                rsltSrc=3'b0xx;
-                ujMux=2'b01;
-                read=1'b0;
-                divCtrl=2'bxx;
-                div_en=1'b0;
-                case(funct3) 
-                    3'b000,3'b001: //beq, bne
-                        aluCtrl=5'b00001;
-                    3'b100,3'b101: //blt,bge
-                        aluCtrl=5'b00111;
-                    3'b110,3'b111: //bltu, bgeu
-                        aluCtrl=5'b01001;
-                    default:
-                        aluCtrl=5'b0xxxx;
-                                  
-                endcase
-            end
-
-            uTypeLUI,uTypeAUIPC:begin 
-                regWrt=1'b1;
-                memWrt=1'b0;
-                immSrc=3'b100;
-                jmp=1'b0;
-                brnch=1'b0;
-                aluSrc=1'bx;
-                rsltSrc=3'b011;
-                aluCtrl=5'b0xxxx;
-                read=1'b0;
-                divCtrl=2'bxx;
-                div_en=1'b0;
-                if(op==uTypeLUI) ujMux=2'b00;
-                else ujMux=2'b01;
+        else if (inst==MRET) begin
+            mret=1'b1;
+            
+            regWrt=1'b0;
+            memWrt=1'b0;
+            immSrc=3'b000;
+            jmp=1'b0;
+            brnch=1'b0;
+            aluSrc=1'b0;
+            rsltSrc=3'b000;
+            aluCtrl=5'b00000;
+            ujMux=2'bxx;
+            read=1'b0;
+            divCtrl=2'bxx;
+            div_en=1'b0;
+        end
+        
+        else
+            case(op)
                 
-            end
-
-            jType,jTypeJALR:begin
-                regWrt=1'b1;
-                memWrt=1'b0;
-                read=1'b0;
-                if(op==jType) begin 
-                    immSrc=3'b011;
-                    ujMux=2'b01;
-                end
-                else begin 
+                iLoadType:begin
+                    regWrt=1'b1;
+                    memWrt=1'b0;
                     immSrc=3'b000;
-                    ujMux=2'b10;
+                    jmp=1'b0;
+                    brnch=1'b0;
+                    aluSrc=1'b1;
+                    rsltSrc=3'b001;
+                    aluCtrl=5'b00000;
+                    ujMux=2'bxx;
+                    read=1'b1;
+                    divCtrl=2'bxx;
+                    div_en=1'b0;
                 end
-                jmp=1'b1;
-                brnch=1'b0;
-                aluSrc=1'bx;
-                rsltSrc=3'b010;
-                aluCtrl=5'b0xxxx;
-                divCtrl=2'bxx;
-                div_en=1'b0;
-            end
 
-            CSRType:begin
-                memWrt=1'b0;
-                divCtrl=2'bxx;
-                div_en=1'b0;
-                brnch=1'b0;
-                read=1'b0;
-                ujMux=2'bxx;
-                rsltSrc=3'b100;
-                immSrc=3'bxxx;
-                aluSrc=1'b0;
-                aluCtrl=5'b00000;
-                case (funct3)
-                    3'b001,3'b101:begin//csrrw(i)
-                        csr_wrt_en=1'b1;
-                        csr_src=2'b00;
-                        regWrt=1'b1;
-                        csr_imm=funct3[2];
+                iALUType:begin
+                    regWrt=1'b1;
+                    memWrt=1'b0;
+                    immSrc=3'b000;
+                    jmp=1'b0;
+                    brnch=1'b0;
+                    aluSrc=1'b1;
+                    rsltSrc=3'b000;
+                    ujMux=2'bxx;
+                    read=1'b0;
+                    divCtrl=2'bxx;
+                    div_en=1'b0;
+                    case(funct3)
+                        3'b000: //addi
+                            aluCtrl=5'b00000;
+                        3'b001: //slli
+                            aluCtrl=5'b00101;
+                        3'b010: //slti
+                            aluCtrl=5'b00111;
+                        3'b011: //sltiu
+                            aluCtrl=5'b01001;
+                        3'b100: //xori
+                            aluCtrl=5'b00100;
+                        3'b101: //srai and srli
+                            if(funct7[5]) aluCtrl=5'b01000;
+                            else aluCtrl=5'b00110;
+                            
+                        3'b110: //ori
+                            aluCtrl=5'b00011;
+                        3'b111: //andi
+                            aluCtrl=5'b00010;
+                    endcase
+                end
+
+                rType:begin
+                    regWrt=1'b1;
+                    memWrt=1'b0;
+                    immSrc=3'bxxx;
+                    jmp=1'b0;
+                    brnch=1'b0;
+                    aluSrc=1'b0;
+                    rsltSrc=3'b000;
+                    ujMux=2'bxx;
+                    read=1'b0;
+
+                    if (funct7[0]&funct3[2]) begin
+                        div_en=1'b1;
+                        aluCtrl=5'b00000;
                     end
-                    3'b010,3'b110:begin//csrrs(i)
-                        csr_wrt_en=(rs1!=5'b0);
-                        csr_src=2'b01;
-                        regWrt=1'b1;
-                        csr_imm=funct3[2];
-                    end
-                    3'b011,3'b111:begin//csrrc(i)
-                        csr_wrt_en=(rs1!=5'b0);
-                        regWrt=1'b1;
-                        csr_src=2'b10;
-                        csr_imm=funct3[2];
-                    end
+                    else div_en=1'b0;
+
+                    case(funct3)
+                        3'b000: //mul, add, sub
+                            if(funct7[0]) aluCtrl=5'b01010;
+                            else if(~funct7[5]) aluCtrl=5'b00000;
+                            else aluCtrl=5'b00001;
+                        3'b001: //mulh, sll
+                            if(funct7[0]) aluCtrl=5'b01011;
+                            else aluCtrl=5'b00101;
+                        3'b010: //mulhsu, slt
+                            if(funct7[0]) aluCtrl=5'b01101;
+                            else aluCtrl=5'b00111;
+                        3'b011: //mulu, sltu
+                            if(funct7[0]) aluCtrl=5'b01100;
+                            else aluCtrl=5'b01001;
+                        3'b100: //div, xor
+                            if(funct7[0]) divCtrl=2'b00;
+                            else aluCtrl=5'b00100;
+                        3'b101: //divu, sra, srl
+                            if(funct7[0]) divCtrl=2'b01;
+                            else if(funct7[5]) aluCtrl=5'b01000;
+                            else aluCtrl=5'b00110;
+                        3'b110: //rem, or
+                            if(funct7[0]) divCtrl=2'b10;
+                            else aluCtrl=5'b00011;
+                        3'b111: //remu, and
+                            if(funct7[0]) divCtrl=2'b11;
+                            else aluCtrl=5'b00010;
+                            
+                    endcase
+                end
+
+                sType:begin 
+                    regWrt=1'b0;
+                    memWrt=1'b1;
+                    immSrc=3'b001;
+                    jmp=1'b0;
+                    brnch=1'b0;
+                    aluSrc=1'b1;
+                    rsltSrc=3'b0xx;
+                    aluCtrl=5'b00000;
+                    ujMux=2'bxx;
+                    read=1'b0;
+                    divCtrl=2'bxx;
+                    div_en=1'b0;
+                end
+
+                bType:begin 
+                    regWrt=1'b0;
+                    memWrt=1'b0;
+                    immSrc=3'b010;
+                    jmp=1'b0;
+                    brnch=1'b1;
+                    aluSrc=1'b0;
+                    rsltSrc=3'b0xx;
+                    ujMux=2'b01;
+                    read=1'b0;
+                    divCtrl=2'bxx;
+                    div_en=1'b0;
+                    case(funct3) 
+                        3'b000,3'b001: //beq, bne
+                            aluCtrl=5'b00001;
+                        3'b100,3'b101: //blt,bge
+                            aluCtrl=5'b00111;
+                        3'b110,3'b111: //bltu, bgeu
+                            aluCtrl=5'b01001;
+                        default:
+                            aluCtrl=5'b0xxxx;
+                                    
+                    endcase
+                end
+
+                uTypeLUI,uTypeAUIPC:begin 
+                    regWrt=1'b1;
+                    memWrt=1'b0;
+                    immSrc=3'b100;
+                    jmp=1'b0;
+                    brnch=1'b0;
+                    aluSrc=1'bx;
+                    rsltSrc=3'b011;
+                    aluCtrl=5'b0xxxx;
+                    read=1'b0;
+                    divCtrl=2'bxx;
+                    div_en=1'b0;
+                    if(op==uTypeLUI) ujMux=2'b00;
+                    else ujMux=2'b01;
                     
-                    default:begin
-                        csr_wrt_en=1'b0;
-                        csr_src=2'bxx;
-                        regWrt=1'b0;
-                        csr_imm=1'b0;
+                end
+
+                jType,jTypeJALR:begin
+                    regWrt=1'b1;
+                    memWrt=1'b0;
+                    read=1'b0;
+                    if(op==jType) begin 
+                        immSrc=3'b011;
+                        ujMux=2'b01;
                     end
-                endcase
-            end
+                    else begin 
+                        immSrc=3'b000;
+                        ujMux=2'b10;
+                    end
+                    jmp=1'b1;
+                    brnch=1'b0;
+                    aluSrc=1'bx;
+                    rsltSrc=3'b010;
+                    aluCtrl=5'b0xxxx;
+                    divCtrl=2'bxx;
+                    div_en=1'b0;
+                end
 
-            default:begin
-                regWrt=1'b0;
-                memWrt=1'b0;
-                immSrc=3'bxxx;
-                jmp=1'b0;
-                brnch=1'b0;
-                aluSrc=1'bx;
-                rsltSrc=3'b0xx;
-                aluCtrl=5'b0xxxx;
-                ujMux=2'bxx; 
-                read=1'b0; 
-                divCtrl=2'bxx;
-                div_en=1'b0;
-            end  
+                CSRType:begin
+                    memWrt=1'b0;
+                    divCtrl=2'bxx;
+                    div_en=1'b0;
+                    brnch=1'b0;
+                    read=1'b0;
+                    ujMux=2'bxx;
+                    rsltSrc=3'b100;
+                    immSrc=3'bxxx;
+                    aluSrc=1'b0;
+                    aluCtrl=5'b00000;
+                    case (funct3)
+                        3'b001,3'b101:begin//csrrw(i)
+                            csr_wrt_en=1'b1;
+                            csr_src=2'b00;
+                            regWrt=1'b1;
+                            csr_imm=funct3[2];
+                        end
+                        3'b010,3'b110:begin//csrrs(i)
+                            csr_wrt_en=(rs1!=5'b0);
+                            csr_src=2'b01;
+                            regWrt=1'b1;
+                            csr_imm=funct3[2];
+                        end
+                        3'b011,3'b111:begin//csrrc(i)
+                            csr_wrt_en=(rs1!=5'b0);
+                            regWrt=1'b1;
+                            csr_src=2'b10;
+                            csr_imm=funct3[2];
+                        end
+                        
+                        default:begin
+                            csr_wrt_en=1'b0;
+                            csr_src=2'bxx;
+                            regWrt=1'b0;
+                            csr_imm=1'b0;
+                        end
+                    endcase
+                end
+
+                default:begin
+                    illegal_inst=(inst!=32'b0)&~pcSrc;
+                    regWrt=1'b0;
+                    memWrt=1'b0;
+                    immSrc=3'bxxx;
+                    jmp=1'b0;
+                    brnch=1'b0;
+                    aluSrc=1'bx;
+                    rsltSrc=3'b0xx;
+                    aluCtrl=5'b0xxxx;
+                    ujMux=2'bxx; 
+                    read=1'b0; 
+                    divCtrl=2'bxx;
+                    div_en=1'b0;
+                end  
 
 
-        endcase
+            endcase
     end
 
 
