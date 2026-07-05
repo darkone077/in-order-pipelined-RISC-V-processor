@@ -13,15 +13,18 @@ module ctrl#(
     parameter CSRType=7'b1110011,
     parameter ECALL=32'h00000073,
     parameter EBREAK=32'h00100073,
-    parameter MRET=32'h30200073
+    parameter MRET=32'h30200073,
+    parameter FENCE=7'b0001011,
+    parameter aType=7'b0101111
 ) (
     input logic [31:0] inst,
     input logic pcSrc,
-    output logic regWrt,memWrt,jmp,brnch,aluSrc,read,div_en,csr_wrt_en,csr_imm,ebreak,ecall,mret,illegal_inst,
+    output logic regWrt,memWrt,jmp,brnch,aluSrc,read,div_en,csr_wrt_en,csr_imm,ebreak,ecall,mret,illegal_inst,atomic,
     output logic [1:0] ujMux,csr_src,
     output logic [2:0] immSrc,rsltSrc,
     output logic [1:0] divCtrl,
-    output logic [4:0] aluCtrl
+    output logic [4:0] aluCtrl,
+    output logic [3:0] a_ctrl
 );
 
     logic [6:0] op;
@@ -45,6 +48,8 @@ module ctrl#(
         ebreak=1'b0;
         mret=1'b0;
         illegal_inst=1'b0;
+        atomic=1'b0;
+        a_ctrl=4'b0000;
 
         if (inst==ECALL) begin
             ecall=1'b1;
@@ -231,8 +236,10 @@ module ctrl#(
                             aluCtrl=5'b00111;
                         3'b110,3'b111: //bltu, bgeu
                             aluCtrl=5'b01001;
-                        default:
+                        default:begin
                             aluCtrl=5'b0xxxx;
+                            illegal_inst=1'b1;
+                        end
                                     
                     endcase
                 end
@@ -311,6 +318,61 @@ module ctrl#(
                             csr_src=2'bxx;
                             regWrt=1'b0;
                             csr_imm=1'b0;
+                            illegal_inst=1;
+                        end
+                    endcase
+                end
+
+                FENCE:begin
+                    regWrt=1'b0;
+                    memWrt=1'b0;
+                    immSrc=3'b000;
+                    jmp=1'b0;
+                    brnch=1'b0;
+                    aluSrc=1'b0;
+                    rsltSrc=3'b000;
+                    aluCtrl=5'b00000;
+                    ujMux=2'bxx;
+                    read=1'b0;
+                    divCtrl=2'bxx;
+                    div_en=1'b0;
+                end
+                
+                aType:begin
+                    regWrt=1'b1;
+                    memWrt=1'b1;
+                    immSrc=3'b000;
+                    jmp=1'b0;
+                    brnch=1'b0;
+                    aluSrc=1'b0;
+                    rsltSrc=3'b001;
+                    aluCtrl=5'b00000;
+                    ujMux=2'bxx;
+                    read=1'b1;
+                    divCtrl=2'bxx;
+                    div_en=1'b0;
+                    atomic=1'b1;
+                    case (funct7[6:2])
+                        5'b00000://aadd
+                            a_ctrl=4'b0000;
+                        5'b00001://aswap
+                            a_ctrl=4'b0001;
+                        5'b00100://axor
+                            a_ctrl=4'b0010;
+                        5'b01100://aand
+                            a_ctrl=4'b0011;
+                        5'b01000://aor
+                            a_ctrl=4'b0100;
+                        5'b10000://amin
+                            a_ctrl=4'b0101;
+                        5'b10100://amax
+                            a_ctrl=4'b0110;
+                        5'b11000://amminu
+                            a_ctrl=4'b0111;
+                        5'b11100://amaxu
+                            a_ctrl=4'b1000;
+                        default: begin
+                            illegal_inst=1'b1;
                         end
                     endcase
                 end

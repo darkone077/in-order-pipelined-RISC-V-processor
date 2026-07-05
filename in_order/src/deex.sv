@@ -3,7 +3,7 @@
 module deex (
     input logic clk, clr,en_n,
     //control unit
-    input logic regWrtd,memWrtd,jmpd,branchd,aluSrcd,readd,div_end,csr_immd,csr_wrt_end,
+    input logic regWrtd,memWrtd,jmpd,branchd,aluSrcd,readd,div_end,csr_immd,csr_wrt_end,atomicd,
     input logic [2:0] rsltSrcd,
     input logic [2:0] immSrcd, 
     input logic [1:0] ujMuxd,
@@ -11,8 +11,9 @@ module deex (
     input logic [2:0] funct3d,
     input logic [1:0] divCtrld,
     input logic [1:0] csr_srcd,
+    input logic [3:0] a_ctrld,
 
-    output logic regWrte,memWrte,jmpe,branche,aluSrce,reade,div_ene,csr_imme,csr_wrt_ene,
+    output logic regWrte,memWrte,jmpe,branche,aluSrce,reade,div_ene,csr_imme,csr_wrt_ene,atomice,
     output logic [2:0] rsltSrce,
     output logic [2:0] immSrce, 
     output logic [1:0] ujMuxe,
@@ -20,6 +21,7 @@ module deex (
     output logic [2:0] funct3e,
     output logic [1:0] divCtrle,
     output logic [1:0] csr_srce,
+    output logic [3:0] a_ctrle,
 
     //datapath
     input logic [31:0] rd1d,rd2d,pcd,pc4d,immextd,
@@ -62,6 +64,8 @@ module deex (
             csr_wrt_ene<=1'b0;
             //csre<=32'b0;
             csr_addre<=12'b0;
+            atomice<=1'b0;
+            a_ctrle<=4'b0;
 
         end
         else if(~en_n) begin 
@@ -91,6 +95,8 @@ module deex (
             csr_wrt_ene<=csr_wrt_end;
             //csre<=csrd;
             csr_addre<=csr_addrd;
+            a_ctrle<=a_ctrld;
+            atomice<=atomicd;
         end
     end
     

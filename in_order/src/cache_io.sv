@@ -265,9 +265,7 @@ always_ff @(posedge aim.ACLK) begin
         case (master_state)
             IDLE_M:begin
                 //if (~data_exist) begin
-                    if (wrt) addr_buffer<={data_tag[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][1:0]],mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE],{DATA_OFFSET_SIZE{1'b0}}};
-                    else if (read) addr_buffer<={data_tag[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][1:0]],mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE],{DATA_OFFSET_SIZE{1'b0}}};
-                //end
+                    if (wrt|read) addr_buffer<={data_tag[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][data_lru_track[mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE]][1:0]],mem_ad[DATA_OFFSET_SIZE+:DATA_INDEX_SIZE],{DATA_OFFSET_SIZE{1'b0}}};
             end
             WRT_SEND:begin
                 if(aim.AWREADY) aw_done<=1'b1;

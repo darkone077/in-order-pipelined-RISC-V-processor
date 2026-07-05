@@ -14,6 +14,7 @@
 `include "../src/loadunit.sv"
 `include "../src/divider.sv"
 `include "../src/csr.sv"
+`include "../src/atomic.sv"
 
 module top_no_axi (
     input logic clk,
@@ -61,7 +62,10 @@ module top_no_axi (
     logic csr_wrt_ene,csr_imme;
     logic ecall,ebreak,mret,illegal_inst;
 
-    ctrl Control(instd,pcSrc,regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd,div_end,csr_wrt_end,csr_immd,ebreak,ecall,mret,illegal_inst,ujMuxd,csr_srcd,immSrcd,rsltSrcd,divCtrld,aluCtrld);
+    logic atomicd;
+    logic [3:0] a_ctrld;
+
+    ctrl Control(instd,pcSrc,regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd,div_end,csr_wrt_end,csr_immd,ebreak,ecall,mret,illegal_inst,atomicd,ujMuxd,csr_srcd,immSrcd,rsltSrcd,divCtrld,aluCtrld,a_ctrld);
     
     logic [4:0] ad1d,ad2d,rdd;
     assign ad1d=instd[19:15];
@@ -91,7 +95,10 @@ module top_no_axi (
         rd1_csr_immd=csr_immd?{27'b0,instd[19:15]}:rd1d;
         ad1_csrd=csr_immd?5'b0:ad1d; 
     end
-    deex DE(clk,flushe,stalle,regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd,div_end,csr_wrt_end,csr_immd,rsltSrcd,immSrcd,ujMuxd,aluCtrld,funct3d,divCtrld,csr_srcd,regWrte,memWrte,jmpe,brnche,aluSrce,reade,div_ene,csr_wrt_ene,csr_imme,rsltSrce,immSrce,ujMuxe,aluCtrle,funct3e,divCtrle,csr_srce,rd1_csr_immd,rd2d,pcd,pc4d,immextd,ad1_csrd,ad2d,rdd,csr_addrd,rd1e,rd2e,pce,pc4e,immexte,ad1e,ad2e,rde,csr_addre);
+
+    logic atomice;
+    logic [3:0] a_ctrle;
+    deex DE(clk,flushe,stalle,regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd,div_end,csr_wrt_end,csr_immd,atomicd,rsltSrcd,immSrcd,ujMuxd,aluCtrld,funct3d,divCtrld,csr_srcd,a_ctrld,regWrte,memWrte,jmpe,brnche,aluSrce,reade,div_ene,csr_wrt_ene,csr_imme,atomice,rsltSrce,immSrce,ujMuxe,aluCtrle,funct3e,divCtrle,csr_srce,a_ctrle,rd1_csr_immd,rd2d,pcd,pc4d,immextd,ad1_csrd,ad2d,rdd,csr_addrd,rd1e,rd2e,pce,pc4e,immexte,ad1e,ad2e,rde,csr_addre);
 
     logic [31:0] srcAe,srcBe,wrtDe,srcAe_buffer,wrtDe_buffer,srcAe_pre,wrtDe_pre;
     logic [1:0] fwdAe,fwdBe;
@@ -161,7 +168,7 @@ module top_no_axi (
     divider DIV(clk,~rst,div_ene,divCtrle,srcAe,srcBe,divOut,divBusy,divDone);
     
     always_comb begin
-        if (csr_wrt_ene) begin
+        if (csr_wrt_ene|atomice) begin
             aluRslte=srcAe;
         end
         else if (divDone) begin
@@ -196,7 +203,9 @@ module top_no_axi (
     logic csr_wrt_enm;
     logic [1:0] csr_srcm;
 
-    exme EM(clk,stallm,regWrte,memWrte,reade,rsltSrce,funct3e,csr_srce,csr_wrt_ene,regWrtm,memWrtm,readm,rsltSrcm,funct3m,csr_srcm,csr_wrt_enm,aluRslte,wrtDe,pc4e,ujWrtBcke,rde,csr_addre,aluRsltm,wrtDm,pc4m,ujWrtBckm,rdm,csr_addrm);
+    logic atomicm;
+    logic [3:0] a_ctrlm;
+    exme EM(clk,stallm,regWrte,memWrte,reade,rsltSrce,funct3e,csr_srce,csr_wrt_ene,atomice,a_ctrle,regWrtm,memWrtm,readm,rsltSrcm,funct3m,csr_srcm,csr_wrt_enm,atomicm,a_ctrlm,aluRslte,wrtDe,pc4e,ujWrtBcke,rde,csr_addre,aluRsltm,wrtDm,pc4m,ujWrtBckm,rdm,csr_addrm);
     
     logic [31:0] wrtDShiftedm;
     logic [31:0] readDPreShiftm;
@@ -205,14 +214,17 @@ module top_no_axi (
     logic [3:0] strobem;
     loadstoredecoder LSD(aluRsltm,wrtDm,funct3m,wrtDShiftedm,strobem);
 
+    logic [31:0] a_wrtm;
     always_comb begin
         read=readm;
         wrt=memWrtm;
-        wrt_data=wrtDShiftedm;
+        wrt_data=(atomicm)?a_wrtm:wrtDShiftedm;
         wrt_strb=strobem;
         mem_ad=aluRsltm;
         readDPreShiftm=read_data;
     end
+
+    atomic ATOMIC(a_ctrlm,wrtDm,read_data,a_wrtm);
     //datmem_axi_lite DM(inf,memWrtm,aluRsltm,wrtDShiftedm,strobem,readm,readDPreShiftm,axi_error,axiBusy);
     loadunit LU(funct3m,strobem,readDPreShiftm,readDm);
 
@@ -237,7 +249,7 @@ module top_no_axi (
     end
 
     logic inst_addr_misaligned;
-    csr CSR(clk,~rst,csr_addrm,csr_wrt_enm,csr_val,csrm,timerIrq,swIrq,inst_addr_misaligned,illegal_inst,ebreak,1'b0,1'b0,ecall,pc4d,exception_pc,cacheBusy|axiBusy,divBusy,16'b0,1'b0,trap,mret);
+    csr CSR(clk,~rst,csr_addrm,csr_wrt_enm,csr_val,csrm,timerIrq,swIrq,inst_addr_misaligned,illegal_inst,ebreak,1'b0,1'b0,ecall,pcf,pcd,pce,exception_pc,cacheBusy|axiBusy,divBusy,regWrte|memWrte,regWrtd|memWrtd,16'b0,1'b0,trap,mret);
 
     mewb MW(clk,regWrtm,memWrtm,rsltSrcm,regWrtw,memWrtw,rsltSrcw,readDm,pc4m,ujWrtBckm,aluRsltm,rdm,csrm,readDw,pc4w,ujWrtBckw,aluRsltw,rdw,csrw);
 
@@ -283,7 +295,7 @@ module top_no_axi (
             3'b111:
                 bt=brnche&~lstBite;
             default:
-                bt=1'bx;
+                bt=1'b0;
         endcase
     end
 

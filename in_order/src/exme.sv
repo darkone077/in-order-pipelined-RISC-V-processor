@@ -8,12 +8,14 @@ module exme (
     input logic [2:0] rsltSrce,
     input logic [2:0] funct3e,
     input logic [1:0] csr_srce,
-    input logic csr_wrt_ene,
+    input logic csr_wrt_ene,atomice,
+    input logic [3:0] a_ctrle,
     output logic regWrtm, memWrtm,readm,
     output logic [2:0] rsltSrcm,
     output logic [2:0] funct3m,
     output logic [1:0] csr_srcm,
-    output logic csr_wrt_enm,
+    output logic csr_wrt_enm,atomicm,
+    output logic [3:0] a_ctrlm,
 
     //datapath
     input logic [31:0] aluRslte,wrtDe,pc4e,ujWrtBcke,
@@ -42,6 +44,8 @@ module exme (
             csr_srcm<=csr_srce;
             csr_addrm<=csr_addre;
             csr_wrt_enm<=csr_wrt_ene;
+            a_ctrlm<=a_ctrle;
+            atomicm<=atomice;
         end
     end
     
