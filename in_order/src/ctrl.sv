@@ -14,7 +14,7 @@ module ctrl#(
     parameter ECALL=32'h00000073,
     parameter EBREAK=32'h00100073,
     parameter MRET=32'h30200073,
-    parameter FENCE=7'b0001011,
+    parameter FENCE=7'b0001111,
     parameter aType=7'b0101111
 ) (
     input logic [31:0] inst,
@@ -357,6 +357,13 @@ module ctrl#(
                             a_ctrl=4'b0000;
                         5'b00001://aswap
                             a_ctrl=4'b0001;
+                        5'b00010:begin//lr.w
+                            memWrt=1'b0;
+                        end
+                        5'b00011:begin
+                            rsltSrc=3'b101;
+                            read=1'b0;
+                        end
                         5'b00100://axor
                             a_ctrl=4'b0010;
                         5'b01100://aand

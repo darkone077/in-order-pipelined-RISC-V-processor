@@ -60,12 +60,12 @@ module top_no_axi (
     logic [4:0] aluCtrle;
     logic [1:0]csr_srce;
     logic csr_wrt_ene,csr_imme;
-    logic ecall,ebreak,mret,illegal_inst;
+    logic ecalld,ebreakd,mretd,illegal_instd;
 
     logic atomicd;
     logic [3:0] a_ctrld;
 
-    ctrl Control(instd,pcSrc,regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd,div_end,csr_wrt_end,csr_immd,ebreak,ecall,mret,illegal_inst,atomicd,ujMuxd,csr_srcd,immSrcd,rsltSrcd,divCtrld,aluCtrld,a_ctrld);
+    ctrl Control(instd,pcSrc,regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd,div_end,csr_wrt_end,csr_immd,ebreakd,ecalld,mretd,illegal_instd,atomicd,ujMuxd,csr_srcd,immSrcd,rsltSrcd,divCtrld,aluCtrld,a_ctrld);
     
     logic [4:0] ad1d,ad2d,rdd;
     assign ad1d=instd[19:15];
@@ -98,7 +98,9 @@ module top_no_axi (
 
     logic atomice;
     logic [3:0] a_ctrle;
-    deex DE(clk,flushe,stalle,regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd,div_end,csr_wrt_end,csr_immd,atomicd,rsltSrcd,immSrcd,ujMuxd,aluCtrld,funct3d,divCtrld,csr_srcd,a_ctrld,regWrte,memWrte,jmpe,brnche,aluSrce,reade,div_ene,csr_wrt_ene,csr_imme,atomice,rsltSrce,immSrce,ujMuxe,aluCtrle,funct3e,divCtrle,csr_srce,a_ctrle,rd1_csr_immd,rd2d,pcd,pc4d,immextd,ad1_csrd,ad2d,rdd,csr_addrd,rd1e,rd2e,pce,pc4e,immexte,ad1e,ad2e,rde,csr_addre);
+
+    logic ebreake,ecalle,illegal_inste,mrete;
+    deex DE(clk,flushe,stalle,regWrtd,memWrtd,jmpd,brnchd,aluSrcd,readd,div_end,csr_wrt_end,csr_immd,atomicd,ebreakd,ecalld,illegal_instd,mretd,rsltSrcd,immSrcd,ujMuxd,aluCtrld,funct3d,divCtrld,csr_srcd,a_ctrld,regWrte,memWrte,jmpe,brnche,aluSrce,reade,div_ene,csr_wrt_ene,csr_imme,atomice,ebreake,ecalle,illegal_inste,mrete,rsltSrce,immSrce,ujMuxe,aluCtrle,funct3e,divCtrle,csr_srce,a_ctrle,rd1_csr_immd,rd2d,pcd,pc4d,immextd,ad1_csrd,ad2d,rdd,csr_addrd,rd1e,rd2e,pce,pc4e,immexte,ad1e,ad2e,rde,csr_addre);
 
     logic [31:0] srcAe,srcBe,wrtDe,srcAe_buffer,wrtDe_buffer,srcAe_pre,wrtDe_pre;
     logic [1:0] fwdAe,fwdBe;
@@ -249,7 +251,7 @@ module top_no_axi (
     end
 
     logic inst_addr_misaligned;
-    csr CSR(clk,~rst,csr_addrm,csr_wrt_enm,csr_val,csrm,timerIrq,swIrq,inst_addr_misaligned,illegal_inst,ebreak,1'b0,1'b0,ecall,pcf,pcd,pce,exception_pc,cacheBusy|axiBusy,divBusy,regWrte|memWrte,regWrtd|memWrtd,16'b0,1'b0,trap,mret);
+    csr CSR(clk,~rst,csr_addrm,csr_wrt_enm,csr_val,csrm,timerIrq,swIrq,inst_addr_misaligned,illegal_inste,ebreake,1'b0,1'b0,ecalle,pcf,pcd,pce,exception_pc,cacheBusy|axiBusy,divBusy,regWrte|memWrte,regWrtd|memWrtd,16'b0,1'b0,trap,mrete);
 
     mewb MW(clk,regWrtm,memWrtm,rsltSrcm,regWrtw,memWrtw,rsltSrcw,readDm,pc4m,ujWrtBckm,aluRsltm,rdm,csrm,readDw,pc4w,ujWrtBckw,aluRsltw,rdw,csrw);
 
@@ -274,9 +276,9 @@ module top_no_axi (
 
     logic irq,de_exception,ex_exception;
     assign irq=swIrq|timerIrq;
-    assign de_exception=illegal_inst|ebreak|ecall|mret;
-    assign ex_exception=inst_addr_misaligned;
-    hazardunit HAZARD(ad1d,ad2d,ad1e,ad2e,rde,rdm,rdw,rsltSrce,rsltSrcm,irq,de_exception,ex_exception,pcSrc,regWrtm,regWrtw,axiBusy,divBusy,cacheBusy,stallf,stalld,stalle,stallm,flushd,flushe,fwdAe,fwdBe);
+    //assign de_exception=illegal_inste|ebreake|ecalle|mrete;
+    assign ex_exception=inst_addr_misaligned|illegal_inste|ebreake|ecalle|mrete;
+    hazardunit HAZARD(ad1d,ad2d,ad1e,ad2e,rde,rdm,rdw,rsltSrce,rsltSrcm,irq,1'b0,ex_exception,pcSrc,regWrtm,regWrtw,axiBusy,divBusy,cacheBusy,stallf,stalld,stalle,stallm,flushd,flushe,fwdAe,fwdBe);
 
     logic bt;
     

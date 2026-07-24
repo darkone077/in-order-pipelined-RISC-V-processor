@@ -12,7 +12,9 @@ module sim_no_axi_lite#(
 )(
     input logic clk,rst_n,
     output logic axi_error,
-    output logic [31:0] pcf,pcj
+    output logic [31:0] pcf,pcj,
+    input logic [7:0] write_data_console,
+    input logic write_to_console
 );
 
     logic [31:0] inst;
@@ -201,7 +203,7 @@ module sim_no_axi_lite#(
         .axi_rready(axil_rready)
         );
 
-    console CON(clk,addr,wrt_data_io[3][7:0],wrt_io[3]);
+    console CON(clk,addr,wrt_data_io[3][7:0],read_data_io[3][7:0],wrt_io[3],read_io[3],write_to_console,write_data_console);
     cache_io_wrapper CACHE (
         // cache IO
         .clk(clk),

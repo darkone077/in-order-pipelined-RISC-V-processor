@@ -31,12 +31,17 @@ module csr#(
     input logic str_addr_misaligned,
     input logic m_ecall,
 
-    input logic [31:0] current_pc,
+    input logic [31:0] pcf,
+    input logic [31:0] pcd,
+    input logic [31:0] pce,
     output logic [31:0] exception_pc,
 
-    input logic busy,div_busy,
+    input logic busy,div_busy,regmeme,regmemd,
+    
+    //external interrupts
     input logic [15:0] irq,
-    input logic external_irq,
+    input logic external_irq,//meip
+    
     output logic trap,
 
     input logic mret
@@ -60,6 +65,16 @@ module csr#(
     } csr_m;
 
     logic sync_exception;
+    logic ex_exception;
+    logic de_exception;
+    logic [31:0] current_pc;
+
+    struct packed{
+        //logic [15:0] irq_buffer;
+        logic external_irq_buffer;
+        logic mclint_timer_int_buffer;
+        logic mclint_sw_int_buffer;
+    } int_buffer;
 
     always_ff @(posedge clk) begin
         if (~rst_n) begin
@@ -70,7 +85,7 @@ module csr#(
             csr_m.mhartid<=32'b0;
             csr_m.mstatus<={1'b0,6'b0,12'b0,2'b11,6'b0,1'b0,1'b0,1'b0,1'b0,1'b0};
             csr_m.mstatush<={21'b0,2'b00,1'b0,4'b0,4'b0};
-            csr_m.mtvec<={IVT_BASE,2'b01};//[31:2]: BASE>>2,[1:0]: 00=direct, 01=vectorised
+            csr_m.mtvec<={IVT_BASE,2'b00};//[31:2]: BASE>>2,[1:0]: 00=direct, 01=vectorised
             csr_m.mie<={16'b0,2'b00,1'b0,1'b0,1'b0,1'b0,1'b0,1'b0,1'b0,1'b0,1'b0,1'b0,1'b0,1'b0,1'b0,1'b0};
             csr_m.mscratch<=32'b0;
             csr_m.mepc<=32'b0;
@@ -78,8 +93,38 @@ module csr#(
             csr_m.mtval<=32'b0;
             csr_m.mconfigptr<=32'b0;
             csr_m.menvcfg<={5'b0,25'b0,2'b00,24'b0,6'b0,1'b0,1'b0};
+
+            //irq buffers
+            //int_buffer.irq_buffer<=16'b0;
+            int_buffer.external_irq_buffer<=1'b0;
+            int_buffer.mclint_timer_int_buffer<=1'b0;
+            int_buffer.mclint_sw_int_buffer<=1'b0;
         end
         else begin
+            if (busy) begin
+                if (~int_buffer.external_irq_buffer&external_irq) begin
+                    int_buffer.external_irq_buffer<=1'b1;
+                end
+                if (~int_buffer.mclint_sw_int_buffer&mclint_sw_int) begin
+                    int_buffer.mclint_sw_int_buffer<=1'b1;
+                end
+                if (~int_buffer.mclint_timer_int_buffer&mclint_timer_int) begin
+                    int_buffer.mclint_timer_int_buffer<=1'b1;
+                end
+            end
+            else begin
+                 /* verilator lint_off WIDTHTRUNC */
+                if (int_buffer.external_irq_buffer&csr_m.mip[EXTERNAL_INT]&csr_m.mie[EXTERNAL_INT]) begin
+                    int_buffer.external_irq_buffer<=1'b0;
+                end
+                if (int_buffer.mclint_sw_int_buffer&mclint_sw_int&csr_m.mip[M_SW_INT]&csr_m.mie[M_SW_INT]) begin
+                    int_buffer.mclint_sw_int_buffer<=1'b0;
+                end
+                if (int_buffer.mclint_timer_int_buffer&mclint_timer_int&csr_m.mip[M_TIMER_INT]&csr_m.mie[M_TIMER_INT]) begin
+                    int_buffer.mclint_timer_int_buffer<=1'b0;
+                end
+                 /* verilator lint_on WIDTHTRUNC */
+            end
             if(csr_m.mip!=32'b0&csr_m.mstatus[3]&~busy)begin
                 /* verilator lint_off WIDTHTRUNC */
                 if (csr_m.mip[EXTERNAL_INT]&csr_m.mie[EXTERNAL_INT]) begin
@@ -178,13 +223,27 @@ module csr#(
                 endcase
             end
         end
-    end    
+    end   
 
     always_comb begin
         exception_pc=32'b0;
         sync_exception=breakpoint|illegal_inst|inst_addr_misaligned|m_ecall|load_addr_misaligned|str_addr_misaligned;
 
-        csr_m.mip={irq,2'b00,1'b0,1'b0,external_irq,1'b0,1'b0,1'b0,mclint_timer_int,1'b0,1'b0,1'b0,mclint_sw_int,1'b0,1'b0,1'b0};
+        csr_m.mip={irq,2'b00,1'b0,1'b0,external_irq|int_buffer.external_irq_buffer,1'b0,1'b0,1'b0,mclint_timer_int|int_buffer.mclint_timer_int_buffer,1'b0,1'b0,1'b0,mclint_sw_int|int_buffer.mclint_sw_int_buffer,1'b0,1'b0,1'b0};
+
+        de_exception=1'b0;
+        ex_exception=inst_addr_misaligned|load_addr_misaligned|str_addr_misaligned|illegal_inst|breakpoint|m_ecall|mret;
+
+        if (ex_exception|((csr_m.mip!=32'b0&csr_m.mstatus[3])&regmeme)) begin
+            current_pc=pce;
+        end
+        else if (de_exception|((csr_m.mip!=32'b0&csr_m.mstatus[3])&regmemd)) begin
+            current_pc=pcd;
+        end
+        else begin
+            current_pc=pcf;
+        end
+
         if (~busy&(csr_m.mip!=32'b0&csr_m.mstatus[3])|(mret|sync_exception)&~(busy|div_busy)) begin
             trap=1;
         end

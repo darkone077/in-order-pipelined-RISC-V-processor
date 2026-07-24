@@ -3,7 +3,7 @@
 module deex (
     input logic clk, clr,en_n,
     //control unit
-    input logic regWrtd,memWrtd,jmpd,branchd,aluSrcd,readd,div_end,csr_immd,csr_wrt_end,atomicd,
+    input logic regWrtd,memWrtd,jmpd,branchd,aluSrcd,readd,div_end,csr_immd,csr_wrt_end,atomicd,ebreakd,ecalld,illegal_instd,mretd,
     input logic [2:0] rsltSrcd,
     input logic [2:0] immSrcd, 
     input logic [1:0] ujMuxd,
@@ -13,7 +13,7 @@ module deex (
     input logic [1:0] csr_srcd,
     input logic [3:0] a_ctrld,
 
-    output logic regWrte,memWrte,jmpe,branche,aluSrce,reade,div_ene,csr_imme,csr_wrt_ene,atomice,
+    output logic regWrte,memWrte,jmpe,branche,aluSrce,reade,div_ene,csr_imme,csr_wrt_ene,atomice,ebreake,ecalle,illegal_inste,mrete,
     output logic [2:0] rsltSrce,
     output logic [2:0] immSrce, 
     output logic [1:0] ujMuxe,
@@ -66,6 +66,10 @@ module deex (
             csr_addre<=12'b0;
             atomice<=1'b0;
             a_ctrle<=4'b0;
+            ebreake<=1'b0;
+            ecalle<=1'b0;
+            mrete<=1'b0;
+            illegal_inste<=1'b0;
 
         end
         else if(~en_n) begin 
@@ -97,6 +101,10 @@ module deex (
             csr_addre<=csr_addrd;
             a_ctrle<=a_ctrld;
             atomice<=atomicd;
+            illegal_inste<=illegal_instd;
+            mrete<=mretd;
+            ebreake<=ebreakd;
+            ecalle<=ecalld;
         end
     end
     

@@ -6,7 +6,7 @@ module ram #(
 
     logic [31:0] mem [0:SIZE-1];
     initial begin
-        $readmemh("../tb/memory.mem",mem);
+        $readmemh("tb/memory.mem",mem);
     end
     typedef enum logic [1:0] {IDLE,WRT_RECIEVE,WRESP_SEND,RDATA_SEND} state_t;
     state_t state,state_nxt;

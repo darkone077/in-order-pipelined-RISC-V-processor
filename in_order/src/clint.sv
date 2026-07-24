@@ -146,11 +146,11 @@ module clint#(
                     ais.RRESP=2'b00;
                 end
                 MTIMELOW:begin
-                    ais.RDATA={mtime[7:0],mtime[15:8],mtime[23:16],mtime[31:24]};
+                    ais.RDATA=mtime[31:0];//{mtime[7:0],mtime[15:8],mtime[23:16],mtime[31:24]};
                     ais.RRESP=2'b00;
                 end
                 MTIMEHIGH:begin
-                    ais.RDATA={mtime[39:32],mtime[47:40],mtime[55:48],mtime[63:56]};
+                    ais.RDATA=mtime[63:32];//{mtime[39:32],mtime[47:40],mtime[55:48],mtime[63:56]};
                     ais.RRESP=2'b00;
                 end
                 default:begin
@@ -166,5 +166,5 @@ module clint#(
     end
 
     assign softIrq=msip[24];
-    assign timerIrq=(mtime>={mtimecmp[39:32],mtimecmp[47:40],mtimecmp[55:48],mtimecmp[63:56],mtimecmp[7:0],mtimecmp[15:8],mtimecmp[23:16],mtimecmp[31:24]});
+    assign timerIrq=(mtime>=mtimecmp);//(mtime>={mtimecmp[39:32],mtimecmp[47:40],mtimecmp[55:48],mtimecmp[63:56],mtimecmp[7:0],mtimecmp[15:8],mtimecmp[23:16],mtimecmp[31:24]});
 endmodule

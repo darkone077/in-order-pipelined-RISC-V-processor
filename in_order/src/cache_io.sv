@@ -88,6 +88,7 @@ always_ff @(posedge aim.ACLK) begin
             data_lru_track[i]<=5'b00100;
         end
         data_track_unpacked=8'b11100100;
+        /* verilator lint_off MULTIDRIVEN */
         addr_buffer<=32'b0;
         for(int i=0;i<2**DATA_INDEX_SIZE;i++)begin
             for (int j=0;j<4;j++) begin
@@ -261,6 +262,10 @@ always_ff @(posedge aim.ACLK) begin
     end
     else begin
         master_state<=master_state_nxt;
+        if (master_state!=WRT_SEND) begin
+            aw_done<=1'b0;
+            w_done<=1'b0;
+        end
         /* verilator lint_off CASEINCOMPLETE */
         case (master_state)
             IDLE_M:begin
